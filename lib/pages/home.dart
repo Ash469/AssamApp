@@ -1,11 +1,8 @@
-// import 'package:endgame/pages/about.dart';
-// import 'package:endgame/pages/contact.dart';
+import 'package:endgame/components/app_drawer.dart';
 import 'package:endgame/pages/edit_profile.dart';
-// import 'package:endgame/pages/faq.dart';
 import 'package:flutter/material.dart';
 import 'package:card_swiper/card_swiper.dart';
-import 'package:endgame/components/app_drawer.dart';
-// import 'package:endgame/components/bottom_nav.dart';
+
 import 'new_application.dart';
 import 'notifications.dart';
 import 'application_status.dart';
@@ -47,18 +44,20 @@ class _HomeState extends State<Home> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          GestureDetector(
-                            onTap: () {
-                              Scaffold.of(context).openDrawer();
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const CircleAvatar(
-                                radius: 40,
-                                backgroundImage: AssetImage('assets/logo.jpg'),
+                          Builder(
+                            builder: (context) => GestureDetector(
+                              onTap: () {
+                                Scaffold.of(context).openDrawer();
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const CircleAvatar(
+                                  radius: 40,
+                                  backgroundImage: AssetImage('assets/logo.jpg'),
+                                ),
                               ),
                             ),
                           ),

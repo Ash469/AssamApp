@@ -17,6 +17,7 @@ class AppDrawer extends StatelessWidget {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
+  
             _buildDrawerHeader(),
             _buildDrawerListTile(
               context,
@@ -58,6 +59,7 @@ class AppDrawer extends StatelessWidget {
         ),
       ),
     );
+
   }
 
   Widget _buildDrawerHeader() {
@@ -113,4 +115,20 @@ class AppDrawer extends StatelessWidget {
       },
     );
   }
+
+  static void openDrawer(BuildContext context) {
+    Scaffold.of(context).openDrawer();
+  }
 }
+
+// You can use an IconButton in your AppBar or anywhere else like this:
+// IconButton(
+//   icon: const Icon(Icons.menu),
+//   onPressed: () => AppDrawer.openDrawer(context),
+// )
+
+// Scaffold(
+//   appBar: CustomAppBar(title: 'Your Title'),
+//   drawer: const AppDrawer(),
+//   // ... rest of your Scaffold properties
+// )

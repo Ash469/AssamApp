@@ -393,21 +393,23 @@ class _HomeState extends State<HomeWeb> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                GestureDetector(
-                  onTap: () {
-                    Scaffold.of(context).openDrawer();
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const CircleAvatar(
-                      radius: 40,
-                      backgroundImage: AssetImage('assets/logo.jpg'),
-                    ),
-                  ),
-                ),
+               Builder(
+                            builder: (context) => GestureDetector(
+                              onTap: () {
+                                Scaffold.of(context).openDrawer();
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const CircleAvatar(
+                                  radius: 40,
+                                  backgroundImage: AssetImage('assets/logo.jpg'),
+                                ),
+                              ),
+                            ),
+                          ),
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
