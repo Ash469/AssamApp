@@ -44,7 +44,7 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
     } catch (e) {
       setState(() {
         isLoading = false;
-        errorMessage = 'Error fetching applications: $e';
+        errorMessage = 'Error in fetching data from Backend';
       });
     }
   }
