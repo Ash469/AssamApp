@@ -66,11 +66,12 @@ import 'package:flutter/material.dart';
 import 'package:motion_tab_bar/MotionBadgeWidget.dart';
 import 'package:motion_tab_bar/MotionTabBar.dart';
 import 'package:motion_tab_bar/MotionTabBarController.dart';
-
+import '../pages/home_Web.dart';
 import '../pages/home.dart';
 import '../pages/about.dart';
 import '../pages/faq.dart';
 import '../pages/contact.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class BottomNavBar extends StatefulWidget {
   const BottomNavBar({super.key, required this.currentIndex});
@@ -88,7 +89,7 @@ class _BottomNavBarState extends State<BottomNavBar> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    _motionTabBarController = MotionTabBarController(vsync: this, length: 4); // Update length to 5
+    _motionTabBarController = MotionTabBarController(vsync: this, length: 4);
   }
 
   @override
@@ -97,8 +98,8 @@ class _BottomNavBarState extends State<BottomNavBar> with SingleTickerProviderSt
     super.dispose();
   }
 
-  final List<Widget> pages = [
-    const Home(),
+  late final List<Widget> pages = [
+    kIsWeb ? const HomeWeb() : const Home(),
     const About(),
     const Faq(),
     const Contact(),
@@ -128,7 +129,6 @@ class _BottomNavBarState extends State<BottomNavBar> with SingleTickerProviderSt
           null,
           null,
           null,
-          // null,  // No badge for Campus Ambassador
         ],
         tabSize: 50,
         tabBarHeight: 55,
