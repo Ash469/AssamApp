@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-
-// import '../pages/home.dart';
+import '../pages/home_Web.dart';
+import '../pages/home.dart';
 import '../pages/about.dart';
 import '../pages/faq.dart';
 import '../pages/contact.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class BottomNavBar extends StatefulWidget {
   const BottomNavBar({super.key, required this.currentIndex});
@@ -17,8 +18,8 @@ class BottomNavBar extends StatefulWidget {
 class _BottomNavBarState extends State<BottomNavBar> {
   int myIndex = 0;
 
-  final List<Widget> pages = [
-    // const Home(),
+ final List<Widget> pages = [
+    kIsWeb ? const HomeWeb() : const Home(),
     const About(),
     const Faq(),
     const Contact(),
