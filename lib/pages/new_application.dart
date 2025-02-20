@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:endgame/components/app_bar.dart';
+import 'package:endgame/components/app_drawer.dart';
 
 class NewApplication extends StatefulWidget {
   const NewApplication({super.key});
@@ -76,6 +77,7 @@ class _NewApplicationState extends State<NewApplication> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(title: 'New Application'),
+      drawer: const AppDrawer(),
       body: SafeArea(
         child: Column(
           children: [
@@ -223,7 +225,38 @@ class _NewApplicationState extends State<NewApplication> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _submitApplication,
+        onPressed: () async {
+          if (_formKey.currentState!.validate()) {
+            try {
+              await _submitApplication();
+              if (mounted) {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Congratulations!'),
+                content: const Text('Your application has been submitted successfully.'),
+                shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+                ),
+                actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop(); 
+              },
+              child: const Text('OK'),
+            ),
+                ],
+              );
+            },
+          );
+              }
+            // ignore: empty_catches
+            } catch (e) {
+            }
+          }
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.teal[700],
           foregroundColor: Colors.white,

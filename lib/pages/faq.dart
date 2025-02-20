@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:endgame/components/app_bar.dart';
+import 'package:endgame/components/app_drawer.dart';
 
 class Faq extends StatefulWidget {
   const Faq({super.key});
@@ -46,6 +47,7 @@ class _FaqState extends State<Faq> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(title: 'FAQ'),
+      drawer: const AppDrawer(),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(12.0),

@@ -18,17 +18,15 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const AppDrawer(),
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(450), // Increase height for overlap
+        preferredSize: const Size.fromHeight(450),
         child: Stack(
-          clipBehavior: Clip.none, // Allow overlap
-          children: [
+          clipBehavior: Clip.none,
+          children: [      
             Container(
               height: 800,
               decoration: const BoxDecoration(
@@ -127,9 +125,8 @@ class _HomeState extends State<Home> {
                 
               ),
             ),
-            // Overlapping effect using Positioned
             Positioned(
-              top: 250, // Moves part of _buildHomePage above AppBar
+              top: 250,
               left: 0,
               right: 0,
               child: Column(
@@ -144,16 +141,6 @@ class _HomeState extends State<Home> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            //   Positioned(
-            //   top: 50, // Moves part of _buildHomePage above AppBar
-            //   left: 0,
-            //   right: 0,
-            //   child: Column(
-            //     children: [
-            //       _buildHomePage(),
-            //     ],
-            //   ),
-            // ),
             const SizedBox(height: 90),
             _buildSwiper(),
           ],

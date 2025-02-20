@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
+import 'package:endgame/components/app_drawer.dart';
 import 'package:endgame/components/app_bar.dart'; // Ensure this is correct
 
 class ApplicationStatusPage extends StatefulWidget {
@@ -53,6 +53,7 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(title: 'Application Status'),
+      drawer: const AppDrawer(),
       body: SafeArea(
         child: Column(
           children: [

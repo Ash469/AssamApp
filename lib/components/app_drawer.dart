@@ -17,7 +17,6 @@ class AppDrawer extends StatelessWidget {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-  
             _buildDrawerHeader(),
             _buildDrawerListTile(
               context,

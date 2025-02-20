@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:endgame/components/app_drawer.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -11,16 +12,22 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: preferredSize.height, // Ensure height is applied
+      height: preferredSize.height,
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: AssetImage('assets/app.png'), // Ensure the image exists
+          image: AssetImage('assets/app.png'),
           fit: BoxFit.cover,
         ),
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
         child: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () {
+                Scaffold.of(context).openDrawer();
+            },
+          ),
           title: Text(title),
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -30,5 +37,5 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(138); // Ensure Scaffold respects height
+  Size get preferredSize => const Size.fromHeight(138);
 }

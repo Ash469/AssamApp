@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:endgame/components/app_bar.dart';
+import 'package:endgame/components/app_drawer.dart';
 import 'package:flutter/services.dart';
 
 class Contact extends StatelessWidget {
@@ -10,6 +11,7 @@ class Contact extends StatelessWidget {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: const CustomAppBar(title: 'Connect with Us'),
+      drawer: const AppDrawer(),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),

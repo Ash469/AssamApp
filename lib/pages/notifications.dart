@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:endgame/components/app_bar.dart';
+import 'package:endgame/components/app_drawer.dart';
 
 class NotificationItem {
   final String title;
@@ -86,6 +87,7 @@ class _NotificationsState extends State<Notifications> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(title: 'Notifications'),
+      drawer: const AppDrawer(),
       body: 
        Column(
           children: [
