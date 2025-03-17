@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:endgame/components/app_drawer.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -22,12 +21,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
         child: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-                Scaffold.of(context).openDrawer();
-            },
-          ),
+          // leading: IconButton(
+          //   icon: const Icon(Icons.menu),
+          //   onPressed: () {
+          //       Scaffold.of(context).openDrawer();
+          //   },
+          // ),
           title: Text(title),
           backgroundColor: Colors.transparent,
           elevation: 0,

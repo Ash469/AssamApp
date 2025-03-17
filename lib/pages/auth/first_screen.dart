@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'signup.dart';
-import 'login2.dart';
+import 'package:endgame/pages/auth/user_screen.dart';
+import 'package:endgame/pages/auth/admin_screen.dart';
 
-class FrontPage extends StatelessWidget {
-  const FrontPage({super.key});
+
+
+class FirstScreen extends StatelessWidget {
+  const FirstScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +85,7 @@ class FrontPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Welcome to Office',
+                      'Select Your Role',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -103,11 +105,11 @@ class FrontPage extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const SignUpPage()),
+                          MaterialPageRoute(builder: (context) => const AdminScreen()),
                         );
                       },
                       child: const Text(
-                        'Sign up',
+                        'Admin',
                         style: TextStyle(fontSize: 18, color: Colors.white),
                       ),
                     ),
@@ -124,11 +126,11 @@ class FrontPage extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const LogInScreen()),
+                          MaterialPageRoute(builder: (context) => const UserScreen()),
                         );
                       },
                       child: const Text(
-                        'Login',
+                        'User',
                         style: TextStyle(fontSize: 18),
                       ),
                     ),

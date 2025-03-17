@@ -2,8 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:endgame/components/app_bar.dart';
 import 'dart:convert';
-
 import 'package:endgame/homepage.dart' as home_page;
+
+/* 
+  **Sign Up Page**
+  1. User enters phone number and clicks "Send OTP"
+  2. OTP is sent to the user's phone number
+  3. User enters OTP and other details to complete signup
+*/
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:endgame/components/app_bar.dart';
 import 'package:endgame/components/app_drawer.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:typed_data';
 
 class NewApplication extends StatefulWidget {
   const NewApplication({super.key});
@@ -15,21 +17,58 @@ class _NewApplicationState extends State<NewApplication> {
   final _formKey = GlobalKey<FormState>();
 
   // Controllers for text fields
-  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _middleNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _phoneNoController = TextEditingController();
   final TextEditingController _occupationController = TextEditingController();
-  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _revenueCircleController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
   final TextEditingController _documentUrlController = TextEditingController(text: "https://abcd.com/file.png");
 
   String? _selectedCategory;
-  String? _selectedArea;
+  String? _selectedDistrict;
+  String? _selectedVillageWard;
   String? _selectedGender;
 
   final List<String> _categories = ['Education', 'Employment', 'Health', 'Disaster Relief', 'Other'];
   final List<String> _genders = ['Male', 'Female', 'Other'];
-  final List<String> _areas = ['Village' , 'Town' , 'Tehsil' , 'Development Block'];
+  final List<String> _districts = [
+    'Baksa', 'Barpeta', 'Biswanath', 'Bongaigaon', 'Cachar', 'Charaideo',
+    'Chirang', 'Darrang', 'Dhemaji', 'Dhubri', 'Dibrugarh', 'Dima Hasao',
+    'Goalpara', 'Golaghat', 'Hailakandi', 'Hojai', 'Jorhat', 'Kamrup',
+    'Kamrup Metropolitan', 'Karbi Anglong', 'Karimganj', 'Kokrajhar',
+    'Lakhimpur', 'Majuli', 'Morigaon', 'Nagaon', 'Nalbari', 'Sivasagar',
+    'Sonitpur', 'South Salmara-Mankachar', 'Tinsukia', 'Udalguri', 'West Karbi Anglong'
+  ];
+  final List<String> _villagesWards = ['Village', 'Ward']; // Replace with actual data
+
+  // Add these variables to track the selected file
+  String? _selectedFileName;
+  Uint8List? _selectedFileBytes;
+
+  // Add this method to handle file picking
+  Future<void> _pickFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'],
+      );
+
+      if (result != null) {
+        setState(() {
+          _selectedFileName = result.files.single.name;
+          _selectedFileBytes = result.files.single.bytes;
+          _documentUrlController.text = _selectedFileName ?? "";
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error selecting file: $e")),
+      );
+    }
+  }
 
   Future<void> _submitApplication() async {
     if (!_formKey.currentState!.validate()) {
@@ -42,14 +81,17 @@ class _NewApplicationState extends State<NewApplication> {
         uri,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "fullName": _fullNameController.text.trim(),
+          "firstName": _firstNameController.text.trim(),
+          "middleName": _middleNameController.text.trim(),
+          "lastName": _lastNameController.text.trim(),
           "age": int.tryParse(_ageController.text.trim()) ?? 0,
           "phoneNo": _phoneNoController.text.trim(),
           "gender": _selectedGender ?? "",
           "occupation": _occupationController.text.trim(),
-          "address": _addressController.text.trim(),
+          "district": _selectedDistrict ?? "",
+          "revenueCircle": _revenueCircleController.text.trim(),
+          "villageWard": _selectedVillageWard ?? "",
           "category": _selectedCategory ?? "",
-          "area": _selectedArea ?? "",
           "remarks": _remarksController.text.trim(),
           "documenturl": _documentUrlController.text.trim(),
         }),
@@ -79,68 +121,78 @@ class _NewApplicationState extends State<NewApplication> {
       appBar: const CustomAppBar(title: 'New Application'),
       drawer: const AppDrawer(),
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 6),
-            Expanded(
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTextField(label: 'First Name', controller: _firstNameController),
+                _buildTextField(label: 'Middle Name', controller: _middleNameController, validator: (value) => null, isRequired: false),
+                _buildTextField(label: 'Last Name', controller: _lastNameController),
+                _buildTextField(label: 'Age', controller: _ageController, keyboardType: TextInputType.number),
+                _buildTextField(label: 'Phone No.', controller: _phoneNoController, keyboardType: TextInputType.phone),
+                _buildDropdownField(
+                  label: 'Gender',
+                  value: _selectedGender,
+                  items: _genders,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedGender = value;
+                    });
+                  },
                 ),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildTextField(label: 'Full Name', controller: _fullNameController),
-                        _buildTextField(label: 'Age', controller: _ageController, keyboardType: TextInputType.number),
-                        _buildTextField(label: 'Phone No.', controller: _phoneNoController, keyboardType: TextInputType.phone),
-                        _buildDropdownField(
-                          label: 'Gender',
-                          value: _selectedGender,
-                          items: _genders,
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedGender = value;
-                            });
-                          },
-                        ),
-                        _buildTextField(label: 'Occupation', controller: _occupationController),
-                        _buildTextField(label: 'Address', controller: _addressController, maxLines: 2),
-                        _buildDropdownField(
-                          label: 'Category of application',
-                          value: _selectedCategory,
-                          items: _categories,
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedCategory = value;
-                            });
-                          },
-                        ),
-                        _buildDropdownField(
-                          label: 'Area of residence',
-                          value: _selectedArea,
-                          items: _areas,
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedArea = value;
-                            });
-                          },
-                        ),
-                        _buildTextField(label: 'Add remarks', controller: _remarksController, maxLines: 3),
-                        _buildTextField(label: 'Document URL', controller: _documentUrlController, maxLines: 1, validator: _validateDocumentUrl),
-                        const SizedBox(height: 32),
-                        _buildSubmitButton(),
-                      ],
-                    ),
+                _buildTextField(label: 'Occupation', controller: _occupationController),
+                _buildDropdownField(
+                  label: 'District of Assam',
+                  value: _selectedDistrict,
+                  items: _districts,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedDistrict = value;
+                      _selectedVillageWard = null;
+                    });
+                  },
+                ),
+                _buildTextField(label: 'Revenue Circle', controller: _revenueCircleController),
+                _buildDropdownField(
+                  label: 'Village/Ward',
+                  value: _selectedVillageWard,
+                  items: _villagesWards,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedVillageWard = value;
+                    });
+                  },
+                ),
+                _buildDropdownField(
+                  label: 'Category of application',
+                  value: _selectedCategory,
+                  items: _categories,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategory = value;
+                    });
+                  },
+                ),
+                _buildTextField(label: 'Add remarks', controller: _remarksController, maxLines: 3, isRequired: false),
+                // _buildTextField(label: 'Document URL', controller: _documentUrlController, validator: _validateDocumentUrl),
+                _buildDocumentUploadField(),
+                const SizedBox(height: 10),
+                const Text(
+                  '* Required fields',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.red,
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
-              ),
+                const SizedBox(height: 10),
+                _buildSubmitButton(),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -152,24 +204,18 @@ class _NewApplicationState extends State<NewApplication> {
     TextInputType? keyboardType,
     int maxLines = 1,
     String? Function(String?)? validator,
+    bool isRequired = true,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.only(bottom: 12.0),
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
         maxLines: maxLines,
         decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
-          enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: Colors.teal, width: 2),
-            borderRadius: BorderRadius.circular(10),
-          ),
+          labelText: isRequired ? '$label *' : label,
+          border: const OutlineInputBorder(),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
         ),
         validator: validator ??
             (value) {
@@ -187,22 +233,22 @@ class _NewApplicationState extends State<NewApplication> {
     required String? value,
     required List<String> items,
     required void Function(String?) onChanged,
+    bool isRequired = true,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.only(bottom: 12.0),
       child: DropdownButtonFormField<String>(
         value: value,
+        isExpanded: false,
+        menuMaxHeight: 250, // Limit dropdown height
+        dropdownColor: Colors.white,
+        isDense: true,
         decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
-          enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: Colors.teal, width: 2),
-            borderRadius: BorderRadius.circular(10),
-          ),
+          labelText: isRequired ? '$label *' : label,
+          border: const OutlineInputBorder(),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          filled: true,
+          fillColor: Colors.grey[50],
         ),
         items: items.map((String item) {
           return DropdownMenuItem<String>(
@@ -211,46 +257,49 @@ class _NewApplicationState extends State<NewApplication> {
           );
         }).toList(),
         onChanged: onChanged,
+        icon: const Icon(Icons.arrow_drop_down),
         validator: (value) {
-          if (value == null || value.isEmpty) {
+          if (isRequired && (value == null || value.isEmpty)) {
             return 'Please select $label';
           }
           return null;
         },
+        style: const TextStyle(
+          color: Colors.black87,
+          fontSize: 14,
+        ),
       ),
     );
   }
 
   Widget _buildSubmitButton() {
-    return SizedBox(
+    return Container(
       width: double.infinity,
-      child: ElevatedButton(
+      margin: const EdgeInsets.only(top: 10.0),
+      child: ElevatedButton.icon(
         onPressed: () async {
           if (_formKey.currentState!.validate()) {
             try {
               await _submitApplication();
               if (mounted) {
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('Congratulations!'),
-                content: const Text('Your application has been submitted successfully.'),
-                shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-                ),
-                actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop(); 
-              },
-              child: const Text('OK'),
-            ),
-                ],
-              );
-            },
-          );
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: const Text('Success'),
+                      content: const Text('Your application has been submitted successfully.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            Navigator.of(context).pop(); 
+                          },
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    );
+                  },
+                );
               }
             // ignore: empty_catches
             } catch (e) {
@@ -258,16 +307,21 @@ class _NewApplicationState extends State<NewApplication> {
           }
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.teal[700],
+          backgroundColor: Theme.of(context).primaryColor,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 15),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(8.0),
           ),
+          elevation: 3,
         ),
-        child: const Text(
-          'Submit Application',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        icon: const Icon(Icons.send),
+        label: const Text(
+          'SUBMIT APPLICATION',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
@@ -279,5 +333,77 @@ class _NewApplicationState extends State<NewApplication> {
       return 'Enter a valid document URL (PNG, JPG, PDF, DOC)';
     }
     return null;
+  }
+
+  Widget _buildDocumentUploadField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Document Upload *',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: _pickFile,
+            child: Container(
+              width: double.infinity,
+              height: 60,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(4),
+                        bottomLeft: Radius.circular(4),
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.upload_file,
+                      color: Colors.grey,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _selectedFileName ?? "Upload your document",
+                      style: TextStyle(
+                        color: _selectedFileName != null ? Colors.black : Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_documentUrlController.text.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 8.0, left: 12.0),
+              child: Text(
+                'Please upload a document',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

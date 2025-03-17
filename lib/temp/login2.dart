@@ -4,6 +4,11 @@ import 'package:endgame/homepage.dart' as home_page;
 import 'package:endgame/components/app_bar.dart';
 import 'dart:convert';
 
+/*
+  **Login Page**
+  1. User enters username and password and clicks "Login"
+  2. User receives OTP on phone number and enters it to complete login
+*/
 class LogInScreen extends StatefulWidget {
   const LogInScreen({super.key});
 

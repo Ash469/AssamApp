@@ -126,7 +126,8 @@ class _HomeState extends State<Home> {
               ),
             ),
             Positioned(
-              top: 250,
+              // top: 250,
+              top:300,
               left: 0,
               right: 0,
               child: Column(
@@ -141,7 +142,8 @@ class _HomeState extends State<Home> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const SizedBox(height: 90),
+            // const SizedBox(height: 80),
+            const SizedBox(height: 40),
             _buildSwiper(),
           ],
         ),
@@ -164,10 +166,9 @@ class _HomeState extends State<Home> {
               borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  // blurRadius: 0,
-                  // spreadRadius: 5,
-                  offset: const Offset(0, 0),
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
@@ -177,8 +178,8 @@ class _HomeState extends State<Home> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisCount: 3,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 0,
+                  mainAxisSpacing: 5,
+                  crossAxisSpacing: 10,
                   childAspectRatio: 1.0,
                   children: [
                     _buildMenuItem(
@@ -229,61 +230,62 @@ class _HomeState extends State<Home> {
                       iconColor: Colors.indigo[600]!,
                       bgColor: Colors.indigo[50]!,
                     ),
-                    _buildMenuItem(
-                      icon: Image.asset(
-                        'assets/appointment.png',
-                        height: 38,
-                        width: 38,
-                      ),
-                      label: 'Appointments',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AppointmentPage(),
-                        ),
-                      ),
-                      iconColor: Colors.red[600]!,
-                      bgColor: Colors.red[50]!,
-                    ),
-                    _buildMenuItem(
-                      icon: Image.asset(
-                        'assets/invitation.png',
-                        height: 38,
-                        width: 38,
-                      ),
-                      label: 'Invitations',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const Invitation(),
-                        ),
-                      ),
-                      iconColor: Colors.purple[600]!,
-                      bgColor: Colors.purple[50]!,
-                    ),
-                    _buildMenuItem(
-                      icon: Image.asset(
-                        'assets/edit_profile.png',
-                        height: 38,
-                        width: 38,
-                      ),
-                      label: 'Edit Profile',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const EditProfile(),
-                        ),
-                      ),
-                      iconColor: Colors.teal[600]!,
-                      bgColor: Colors.teal[50]!,
-                    ),
+                    // _buildMenuItem(
+                    //   icon: Image.asset(
+                    //     'assets/appointment.png',
+                    //     height: 38,
+                    //     width: 38,
+                    //   ),
+                    //   label: 'Appointments',
+                    //   onTap: () => Navigator.push(
+                    //     context,
+                    //     MaterialPageRoute(
+                    //       builder: (context) => const AppointmentPage(),
+                    //     ),
+                    //   ),
+                    //   iconColor: Colors.red[600]!,
+                    //   bgColor: Colors.red[50]!,
+                    // ),
+                    // _buildMenuItem(
+                    //   icon: Image.asset(
+                    //     'assets/invitation.png',
+                    //     height: 38,
+                    //     width: 38,
+                    //   ),
+                    //   label: 'Invitations',
+                    //   onTap: () => Navigator.push(
+                    //     context,
+                    //     MaterialPageRoute(
+                    //       builder: (context) => const Invitation(),
+                    //     ),
+                    //   ),
+                    //   iconColor: Colors.purple[600]!,
+                    //   bgColor: Colors.purple[50]!,
+                    // ),
+                    // _buildMenuItem(
+                    //   icon: Image.asset(
+                    //     'assets/edit_profile.png',
+                    //     height: 38,
+                    //     width: 38,
+                    //   ),
+                    //   label: 'Edit Profile',
+                    //   onTap: () => Navigator.push(
+                    //     context,
+                    //     MaterialPageRoute(
+                    //       builder: (context) => const EditProfile(),
+                    //     ),
+                    //   ),
+                    //   iconColor: Colors.teal[600]!,
+                    //   bgColor: Colors.teal[50]!,
+                    // ),
                   ],
                 ),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 5),
+            // padding: const EdgeInsets.fromLTRB(24, 10, 24, 5),
+            padding: const EdgeInsets.fromLTRB(24, 30, 24, 5),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -328,7 +330,7 @@ class _HomeState extends State<Home> {
   }) {
     return InkWell(
       onTap: onTap,
-      // borderRadius: BorderRadius.circular(36),
+
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -377,12 +379,12 @@ class _HomeState extends State<Home> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            borderRadius: BorderRadius.all(Radius.circular(12)),
             child: Image.asset(
               image,
               width: double.infinity,
               height: 150,
-              fit: BoxFit.cover,
+              fit: BoxFit.fill,
             ),
           ),
           Padding(
@@ -415,22 +417,22 @@ class _HomeState extends State<Home> {
 
   Widget _buildSwiper() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      height: 196,
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 30),
+      height: 200,
       width: double.infinity,
       child: Swiper(
         itemBuilder: (BuildContext context, int index) {
           return _buildEventCard(context, index);
         },
         itemCount: 5,
-        viewportFraction: 0.7, // Adjusted to center the first card
-        scale: 0.75, // Adjusted for better scaling effect
+        viewportFraction: 0.7,
+        scale: 0.75, 
         pagination: SwiperPagination(
-          margin: const EdgeInsets.only(top: 16),
+          margin: const EdgeInsets.only(top: 26),
           builder: DotSwiperPaginationBuilder(
             color: Colors.grey[300],
             activeColor: Colors.blue[600],
-            size: 4,
+            size: 5,
             activeSize: 6,
             space: 4,
           ),
@@ -473,7 +475,7 @@ class _HomeState extends State<Home> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.white,
+        // color: Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),

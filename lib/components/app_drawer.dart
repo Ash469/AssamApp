@@ -13,44 +13,51 @@ class AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Drawer(
       child: Container(
-        color: Colors.white,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.blue.shade100, Colors.white],
+          ),
+        ),
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             _buildDrawerHeader(),
+            const SizedBox(height: 10),
             _buildDrawerListTile(
               context,
-              const Icon(Icons.home),
+              const Icon(Icons.home, color: Colors.blue),
               'Home',
               const home_page.HomePage(),
             ),
             _buildDrawerListTile(
               context,
-              const Icon(Icons.info),
+              const Icon(Icons.info, color: Colors.blue),
               'New Application',
               const NewApplication(),
             ),
             _buildDrawerListTile(
               context,
-              const Icon(Icons.group),
+              const Icon(Icons.group, color: Colors.blue),
               'Application Status',
               const ApplicationStatusPage(),
             ),
             _buildDrawerListTile(
               context,
-              const Icon(Icons.calendar_month),
+              const Icon(Icons.calendar_month, color: Colors.blue),
               'Appointment',
               const AppointmentPage(),
             ),
             _buildDrawerListTile(
               context,
-              const Icon(Icons.contact_support),
+              const Icon(Icons.contact_support, color: Colors.blue),
               'Contact',
               const Contact(),
             ),
             _buildDrawerListTile(
               context,
-              const Icon(Icons.info),
+              const Icon(Icons.info, color: Colors.blue),
               'About US',
               const About(),
             ),
@@ -58,36 +65,46 @@ class AppDrawer extends StatelessWidget {
         ),
       ),
     );
-
   }
 
   Widget _buildDrawerHeader() {
     return Container(
-      margin: const EdgeInsets.all(0), 
-      child: const DrawerHeader(
+      margin: const EdgeInsets.all(0),
+      child: DrawerHeader(
         decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/app.png'), 
-          fit: BoxFit.fitHeight,
-        ),
-      ),
-        padding: EdgeInsets.zero,
-        child: Row(
-          children: [
-            SizedBox(
-              width: 90,
-              height: 90,
-              child: CircleAvatar(
-                backgroundImage: AssetImage('assets/logo.jpg'),
-              ),
+          image: const DecorationImage(
+            image: AssetImage('assets/app.png'),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(
+              Colors.black26,
+              BlendMode.darken,
             ),
-            SizedBox(width: 40),
+          ),
+          borderRadius: BorderRadius.circular(0),
+        ),
+        padding: EdgeInsets.zero,
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircleAvatar(
+              radius: 45,
+              backgroundImage: AssetImage('assets/logo.jpg'),
+              backgroundColor: Colors.white,
+            ),
+            SizedBox(height: 10),
             Text(
               'AshTech',
               style: TextStyle(
                 fontSize: 34,
                 fontWeight: FontWeight.bold,
-                color: Colors.lightBlueAccent,
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    offset: Offset(1, 1),
+                    blurRadius: 3.0,
+                    color: Colors.black45,
+                  ),
+                ],
               ),
             ),
           ],
@@ -96,22 +113,31 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  ListTile _buildDrawerListTile(
+  Widget _buildDrawerListTile(
       BuildContext context, Icon leadingIcon, String title, Widget page) {
-    return ListTile(
-      leading: leadingIcon,
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 20,
-        ),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        color: Colors.white.withOpacity(0.7),
       ),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => page),
-        );
-      },
+      child: ListTile(
+        leading: leadingIcon,
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => page),
+          );
+        },
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      ),
     );
   }
 
@@ -119,15 +145,3 @@ class AppDrawer extends StatelessWidget {
     Scaffold.of(context).openDrawer();
   }
 }
-
-// You can use an IconButton in your AppBar or anywhere else like this:
-// IconButton(
-//   icon: const Icon(Icons.menu),
-//   onPressed: () => AppDrawer.openDrawer(context),
-// )
-
-// Scaffold(
-//   appBar: CustomAppBar(title: 'Your Title'),
-//   drawer: const AppDrawer(),
-//   // ... rest of your Scaffold properties
-// )
