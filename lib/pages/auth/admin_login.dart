@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:endgame/pages/admin/admin_home.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AdminLoginPage extends StatefulWidget {
   const AdminLoginPage({Key? key}) : super(key: key);
@@ -15,16 +16,17 @@ class AdminLoginPage extends StatefulWidget {
 
 class _AdminLoginPageState extends State<AdminLoginPage> {
   final _formKey = GlobalKey<FormState>();
-  bool _isEmailLogin = true; // Toggle between email and phone login
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
-  final TextEditingController _emailPhoneController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  final String apiBaseUrl = dotenv.env['BACKEND_URL'] ?? 'http://10.150.54.176:3000';
 
   @override
   void dispose() {
-    _emailPhoneController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -41,10 +43,10 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
         );
 
         final response = await http.post(
-          Uri.parse('http://192.168.128.52:3000/api/admin/login'),
+          Uri.parse('$apiBaseUrl/api/adminlogin'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode({
-            'identifier': _emailPhoneController.text,
+            'username': _usernameController.text,
             'password': _passwordController.text,
           }),
         );
@@ -56,10 +58,9 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('adminToken', responseData['token']);
           
+          // Store admin username as we don't have other details
           final adminData = {
-            'firstname': responseData['admin']['firstName'],
-            'email': responseData['admin']['email'],
-            'adminId': responseData['admin']['adminId'],
+            'username': _usernameController.text,
           };
           await prefs.setString('adminData', json.encode(adminData));
 
@@ -67,20 +68,15 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Welcome back, ${adminData['firstname']}!'),
+              content: Text('Welcome back, Admin!'),
               backgroundColor: Colors.green,
             ),
           );
 
-          // Replace this named route navigation
-          // Navigator.of(context).pushReplacementNamed('/admin/dashboard');
-          
-          // With direct navigation to the AdminHome page
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const AdminHome()),
-          );
+          // Navigate to admin home
+          Navigator.of(context).pushNamedAndRemoveUntil('/admin/home', (route) => false);
         } else {
-          String errorMessage = responseData['message'] ?? 'Login failed';
+          String errorMessage = responseData['error'] ?? responseData['message'] ?? 'Login failed';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(errorMessage),
@@ -90,7 +86,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
         }
       } catch (error) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Connection error: Please check your internet connection'),
             backgroundColor: Colors.red,
           ),
@@ -136,67 +132,22 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                   key: _formKey,
                   child: Column(
                     children: [
-                      // Email/Phone toggle
-                      SegmentedButton<bool>(
-                        segments: const [
-                          ButtonSegment<bool>(
-                            value: true,
-                            label: Text('Email'),
-                            icon: Icon(Icons.email),
-                          ),
-                          ButtonSegment<bool>(
-                            value: false,
-                            label: Text('Phone'),
-                            icon: Icon(Icons.phone),
-                          ),
-                        ],
-                        selected: {_isEmailLogin},
-                        onSelectionChanged: (Set<bool> selection) {
-                          setState(() {
-                            _isEmailLogin = selection.first;
-                            _emailPhoneController.clear();
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Email or Phone field
+                      // Username field (replaces email/phone)
                       TextFormField(
-                        controller: _emailPhoneController,
-                        // keyboardType: _isEmailLogin
-                        //     ? TextInputType.emailAddress
-                        //     : TextInputType.number,
-                        maxLength: _isEmailLogin ? null : 10,
+                        controller: _usernameController,
                         decoration: InputDecoration(
-                          labelText: _isEmailLogin
-                              ? 'Email'
-                              : 'Phone Number (10 digits)',
-                          prefixIcon:
-                              Icon(_isEmailLogin ? Icons.email : Icons.phone),
+                          labelText: 'Admin Username',
+                          prefixIcon: Icon(Icons.person),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          counterText: _isEmailLogin ? null : '',
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return _isEmailLogin
-                                ? 'Please enter your email'
-                                : 'Please enter your phone number';
-                          }
-                          if (_isEmailLogin && !value.contains('@')) {
-                            return 'Please enter a valid email';
-                          }
-                          if (!_isEmailLogin) {
-                            if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
-                              return 'Phone number must be exactly 10 digits';
-                            }
+                            return 'Please enter admin username';
                           }
                           return null;
                         },
-                        inputFormatters: _isEmailLogin
-                            ? []
-                            : [FilteringTextInputFormatter.digitsOnly],
                       ),
                       const SizedBox(height: 16),
 
@@ -227,9 +178,6 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your password';
                           }
-                          if (value.length < 6) {
-                            return 'Password must be at least 6 characters';
-                          }
                           return null;
                         },
                       ),
@@ -240,7 +188,12 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: () {
-                            // TODO: Implement forgot password logic
+                            // For admin, you might want to disable this or implement custom logic
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please contact system administrator for password reset'),
+                              ),
+                            );
                           },
                           child: const Text('Forgot Password?'),
                         ),
@@ -248,28 +201,30 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                       const SizedBox(height: 24),
 
                       // Login button
-                      ElevatedButton(
-                        onPressed: _attemptLogin,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromRGBO(1, 103, 104, 1),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 22, vertical: 16),
-                          textStyle: const TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.bold),
-                          minimumSize: const Size(180, 50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          'LOGIN',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                      _isLoading
+                          ? const CircularProgressIndicator()
+                          : ElevatedButton(
+                              onPressed: _attemptLogin,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color.fromRGBO(1, 103, 104, 1),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 22, vertical: 16),
+                                textStyle: const TextStyle(
+                                    fontSize: 22, fontWeight: FontWeight.bold),
+                                minimumSize: const Size(180, 50),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: const Text(
+                                'LOGIN',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                     ],
                   ),
                 ),

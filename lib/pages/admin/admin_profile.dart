@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:endgame/components/app_bar.dart';
 import 'package:endgame/pages/auth/first_screen.dart';
 
+
 class AdminProfilePage extends StatelessWidget {
   const AdminProfilePage({Key? key}) : super(key: key);
 
@@ -56,7 +57,7 @@ class AdminProfilePage extends StatelessWidget {
           
           // User name
           const Text(
-            'John Doe',
+            'Admin',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -121,9 +122,9 @@ class AdminProfilePage extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildInfoTile(Icons.person, 'Name', 'John Doe'),
+          _buildInfoTile(Icons.person, 'Name', 'Admin'),
           _buildInfoDivider(),
-          _buildInfoTile(Icons.phone, 'Phone', '+1 234 567 8900'),
+          _buildInfoTile(Icons.phone, 'Phone', '+91 9801589162'),
           _buildInfoDivider(),
           _buildInfoTile(Icons.admin_panel_settings, 'Role', 'Administrator'),
         ],

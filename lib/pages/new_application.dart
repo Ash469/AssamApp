@@ -5,6 +5,9 @@ import 'package:endgame/components/app_bar.dart';
 import 'package:endgame/components/app_drawer.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:typed_data';
+import 'package:http_parser/http_parser.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/services.dart'; // Add this import at the top of your file
 
 class NewApplication extends StatefulWidget {
   const NewApplication({super.key});
@@ -14,23 +17,23 @@ class NewApplication extends StatefulWidget {
 }
 
 class _NewApplicationState extends State<NewApplication> {
+  final String apiBaseUrl = dotenv.env['BACKEND_URL'] ?? 'http://10.150.54.176:3000';
   final _formKey = GlobalKey<FormState>();
 
   // Controllers for text fields
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
-  final TextEditingController _phoneNoController = TextEditingController();
-  final TextEditingController _occupationController = TextEditingController();
+  final TextEditingController _contactNumberController = TextEditingController();
   final TextEditingController _revenueCircleController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
-  final TextEditingController _documentUrlController = TextEditingController(text: "https://abcd.com/file.png");
+  final TextEditingController _documentUrlController = TextEditingController();
 
   String? _selectedCategory;
   String? _selectedDistrict;
   String? _selectedVillageWard;
   String? _selectedGender;
 
-  final List<String> _categories = ['Education', 'Employment', 'Health', 'Disaster Relief', 'Other'];
+  final List<String> _categories = ['Administration', 'Legal', 'Business', 'Disaster Relief','Finance','Education', 'Other'];
   final List<String> _genders = ['Male', 'Female', 'Other'];
   final List<String> _districts = [
     'Baksa', 'Barpeta', 'Biswanath', 'Bongaigaon', 'Cachar', 'Charaideo',
@@ -52,16 +55,30 @@ class _NewApplicationState extends State<NewApplication> {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'],
+        withData: true, // Ensure we get the file bytes
       );
 
       if (result != null) {
+        final fileBytes = result.files.single.bytes;
+        final fileName = result.files.single.name;
+        
+        debugPrint('Selected file: $fileName, bytes length: ${fileBytes?.length}');
+        
+        if (fileBytes == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Error: Could not read file data")),
+          );
+          return;
+        }
+        
         setState(() {
-          _selectedFileName = result.files.single.name;
-          _selectedFileBytes = result.files.single.bytes;
+          _selectedFileName = fileName;
+          _selectedFileBytes = fileBytes;
           _documentUrlController.text = _selectedFileName ?? "";
         });
       }
     } catch (e) {
+      debugPrint('Error picking file: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error selecting file: $e")),
       );
@@ -79,29 +96,63 @@ class _NewApplicationState extends State<NewApplication> {
       _isLoading = true;
     });
 
+    String? documentUrl;
+    
     try {
-      var uri = Uri.parse("http://192.168.128.52:3000/api/applications");
+      // First upload the file to Cloudinary if a file was selected
+      if (_selectedFileBytes != null && _selectedFileName != null) {
+        // Show uploading indicator
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Uploading document to cloud...")),
+          );
+        }
+        
+        documentUrl = await _uploadToCloudinary(_selectedFileBytes!, _selectedFileName!);
+        
+        if (documentUrl == null) {
+          throw Exception("Failed to upload document");
+        }
+      } else {
+        throw Exception("Please select a document to upload");
+      }
+
+      // Create the request payload with all required fields
+      final payload = {
+        "fullName": _fullNameController.text.trim(),
+        "age": int.tryParse(_ageController.text.trim()) ?? 0,
+        "contactNumber": _contactNumberController.text.trim(),
+        "gender": _selectedGender ?? "",
+        "district": _selectedDistrict ?? "",
+        "revenueCircle": _revenueCircleController.text.trim(),
+        "villageWard": _selectedVillageWard ?? "",
+        "category": _selectedCategory ?? "",
+        "remarks": _remarksController.text.trim(),
+        "documentUrl": documentUrl, // Now we only use the cloudinary URL
+      };
+
+      // Log the payload for debugging
+      debugPrint('Sending payload: ${jsonEncode(payload)}');
+
+      // Make the API request
+      var uri = Uri.parse('$apiBaseUrl/api/applications');
       var response = await http.post(
         uri,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "fullName": _fullNameController.text.trim(),
-          "age": int.tryParse(_ageController.text.trim()) ?? 0,
-          "phoneNo": _phoneNoController.text.trim(),
-          "gender": _selectedGender ?? "",
-          "occupation": _occupationController.text.trim(),
-          "district": _selectedDistrict ?? "",
-          "revenueCircle": _revenueCircleController.text.trim(),
-          "villageWard": _selectedVillageWard ?? "",
-          "category": _selectedCategory ?? "",
-          "remarks": _remarksController.text.trim(),
-          "documentUrl": _documentUrlController.text.trim(), // Changed from documenturl to documentUrl
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: jsonEncode(payload),
       );
+
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
 
       if (response.statusCode == 201) {
         if (!mounted) return;
-        debugPrint('Created application ID: ${jsonDecode(response.body)['_id']}');
+        final responseData = jsonDecode(response.body);
+        debugPrint('Created application ID: ${responseData['_id']}');
+        
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -129,6 +180,7 @@ class _NewApplicationState extends State<NewApplication> {
       }
     } catch (e) {
       if (!mounted) return;
+      debugPrint('Error during submission: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: $e")),
       );
@@ -138,6 +190,76 @@ class _NewApplicationState extends State<NewApplication> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<String?> _uploadToCloudinary(Uint8List fileBytes, String fileName) async {
+    try {
+      final cloudName = 'dwdjnzla2'; // Your Cloudinary cloud name
+      final uploadPreset = 'assamoffice'; // Replace with your upload preset
+      
+      // Create multipart request
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload'),
+      );
+      
+      // Add upload preset parameter (for unsigned uploads)
+      request.fields['upload_preset'] = uploadPreset;
+      
+      // Determine file extension and MIME type
+      final fileExtension = fileName.split('.').last.toLowerCase();
+      String mimeType;
+      
+      switch (fileExtension) {
+        case 'jpg':
+        case 'jpeg':
+          mimeType = 'image/jpeg';
+          break;
+        case 'png':
+          mimeType = 'image/png';
+          break;
+        case 'pdf':
+          mimeType = 'application/pdf';
+          break;
+        case 'doc':
+          mimeType = 'application/msword';
+          break;
+        case 'docx':
+          mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          break;
+        default:
+          mimeType = 'application/octet-stream';
+      }
+      
+      // Add file
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file', 
+          fileBytes,
+          filename: fileName,
+          contentType: MediaType.parse(mimeType),
+        ),
+      );
+      
+      // Log request details for debugging
+      debugPrint('Sending upload request to Cloudinary...');
+      
+      // Send the request
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        debugPrint('Cloudinary upload success: ${responseData['secure_url']}');
+        return responseData['secure_url'];
+      } else {
+        debugPrint('Cloudinary upload failed: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Error uploading to Cloudinary: $e');
+      return null;
     }
   }
 
@@ -156,7 +278,7 @@ class _NewApplicationState extends State<NewApplication> {
               children: [
                 _buildTextField(label: 'Full Name', controller: _fullNameController),
                 _buildTextField(label: 'Age', controller: _ageController, keyboardType: TextInputType.number),
-                _buildTextField(label: 'Phone No.', controller: _phoneNoController, keyboardType: TextInputType.phone),
+                _buildTextField(label: 'Contact Number', controller: _contactNumberController, keyboardType: TextInputType.phone),
                 _buildDropdownField(
                   label: 'Gender',
                   value: _selectedGender,
@@ -167,7 +289,7 @@ class _NewApplicationState extends State<NewApplication> {
                     });
                   },
                 ),
-                _buildTextField(label: 'Occupation', controller: _occupationController),
+                // _buildTextField(label: 'Occupation', controller: _occupationController),
                 _buildDropdownField(
                   label: 'District of Assam',
                   value: _selectedDistrict,
@@ -229,6 +351,7 @@ class _NewApplicationState extends State<NewApplication> {
     int maxLines = 1,
     String? Function(String?)? validator,
     bool isRequired = true,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
@@ -236,6 +359,7 @@ class _NewApplicationState extends State<NewApplication> {
         controller: controller,
         keyboardType: keyboardType,
         maxLines: maxLines,
+        inputFormatters: inputFormatters,
         decoration: InputDecoration(
           labelText: isRequired ? '$label *' : label,
           border: const OutlineInputBorder(),
@@ -346,72 +470,93 @@ class _NewApplicationState extends State<NewApplication> {
   Widget _buildDocumentUploadField() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Document Upload *',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black54,
-            ),
-          ),
-          const SizedBox(height: 8),
-          InkWell(
-            onTap: _pickFile,
-            child: Container(
-              width: double.infinity,
-              height: 60,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(4),
-                        bottomLeft: Radius.circular(4),
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.upload_file,
-                      color: Colors.grey,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _selectedFileName ?? "Upload your document",
-                      style: TextStyle(
-                        color: _selectedFileName != null ? Colors.black : Colors.grey[600],
-                        fontSize: 14,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_documentUrlController.text.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 8.0, left: 12.0),
-              child: Text(
-                'Please upload a document',
+      child: FormField<String>(
+        initialValue: _selectedFileName,
+        validator: (value) {
+          if (_selectedFileBytes == null) {
+            return 'Please select a document';
+          }
+          return null;
+        },
+        builder: (FormFieldState<String> state) {
+          // This ensures state is updated when file is selected
+          if (_selectedFileBytes != null && state.hasError) {
+            Future.microtask(() => state.validate());
+          }
+          
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Document Upload *',
                 style: TextStyle(
-                  color: Colors.red,
-                  fontSize: 12,
+                  fontSize: 14,
+                  color: Colors.black54,
                 ),
               ),
-            ),
-        ],
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () async {
+                  await _pickFile();
+                  // Force validation update after picking file
+                  state.didChange(_selectedFileName);
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: state.hasError ? Colors.red : Colors.grey),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(4),
+                            bottomLeft: Radius.circular(4),
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.upload_file,
+                          color: Colors.grey,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _selectedFileName ?? "Select a document to upload",
+                          style: TextStyle(
+                            color: _selectedFileName != null ? Colors.black : Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (state.hasError)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0, left: 12.0),
+                  child: Text(
+                    state.errorText!,
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
 }
+

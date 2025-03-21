@@ -92,26 +92,26 @@ class AdminScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal.shade600,
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 15),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const AdminSignup()),
-                        );
-                      },
-                      child: const Text(
-                        'Sign up',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
+                    // ElevatedButton(
+                    //   style: ElevatedButton.styleFrom(
+                    //     backgroundColor: Colors.teal.shade600,
+                    //     elevation: 3,
+                    //     shape: RoundedRectangleBorder(
+                    //       borderRadius: BorderRadius.circular(30),
+                    //     ),
+                    //     padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 15),
+                    //   ),
+                    //   onPressed: () {
+                    //     Navigator.push(
+                    //       context,
+                    //       MaterialPageRoute(builder: (context) => const AdminSignup()),
+                    //     );
+                    //   },
+                    //   child: const Text(
+                    //     'Sign up',
+                    //     style: TextStyle(fontSize: 18, color: Colors.white),
+                    //   ),
+                    // ),
                     const SizedBox(height: 16),
                     OutlinedButton(
                       style: OutlinedButton.styleFrom(

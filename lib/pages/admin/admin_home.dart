@@ -2,7 +2,9 @@ import 'package:endgame/components/app_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:card_swiper/card_swiper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'admin_application.dart';
 import 'admin_notification.dart';
@@ -17,12 +19,17 @@ class AdminHome extends StatefulWidget {
 }
 
 class _AdminHomeState extends State<AdminHome> {
+  final String apiBaseUrl = dotenv.env['BACKEND_URL'] ?? 'http://10.150.54.176:3000';
   String adminName = '';
+  int totalUsers = 0;
+  int verifiedUsers = 0;
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadAdminData();
+    _fetchUserData();
   }
 
   Future<void> _loadAdminData() async {
@@ -33,6 +40,41 @@ class _AdminHomeState extends State<AdminHome> {
       setState(() {
         adminName = userData['firstName'] ?? 'Admin';
       });
+    }
+  }
+
+  // Add this new method to fetch user data
+  Future<void> _fetchUserData() async {
+    try {
+      final response = await http.get(Uri.parse('$apiBaseUrl/api/getnewsignup'));
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> users = data['users']; // Extract users array from response
+        
+        int verified = 0;
+        for (var user in users) {
+          if (user['verified'] == true) { // Check "verified" field, not "isVerified"
+            verified++;
+          }
+        }
+        
+        setState(() {
+          totalUsers = users.length;
+          verifiedUsers = verified;
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        print('Failed to load users: ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      print('Error fetching user data: $e');
     }
   }
 
@@ -110,7 +152,7 @@ class _AdminHomeState extends State<AdminHome> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Welcome, $adminName',
+                              'Welcome Admin',
                               style: Theme.of(context)
                                   .textTheme
                                   .headlineSmall
@@ -158,10 +200,9 @@ class _AdminHomeState extends State<AdminHome> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const SizedBox(height: 40),
             _buildStatCards(),
             const SizedBox(height: 20),
-            _buildRecentActivity(),
+            // _buildRecentActivity(),
           ],
         ),
       ),
@@ -312,7 +353,7 @@ class _AdminHomeState extends State<AdminHome> {
               Expanded(
                 child: _buildStatCard(
                   title: 'Total Users',
-                  value: '135',
+                  value: isLoading ? 'Loading...' : totalUsers.toString(),
                   icon: Icons.people,
                   color: Colors.blue,
                 ),
@@ -320,10 +361,10 @@ class _AdminHomeState extends State<AdminHome> {
               const SizedBox(width: 16),
               Expanded(
                 child: _buildStatCard(
-                  title: 'Active Applications',
-                  value: '47',
-                  icon: Icons.description,
-                  color: Colors.orange,
+                  title: 'Verified Users',
+                  value: isLoading ? 'Loading...' : verifiedUsers.toString(),
+                  icon: Icons.verified_user,
+                  color: Colors.green,
                 ),
               ),
             ],
@@ -403,165 +444,6 @@ class _AdminHomeState extends State<AdminHome> {
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Colors.grey[800],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentActivity() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 30),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Recent Activity',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            height: 200,
-            width: double.infinity,
-            child: Swiper(
-              itemBuilder: (BuildContext context, int index) {
-                return _buildActivityCard(context, index);
-              },
-              itemCount: 5,
-              viewportFraction: 0.7,
-              scale: 0.75,
-              pagination: SwiperPagination(
-                margin: const EdgeInsets.only(top: 26),
-                builder: DotSwiperPaginationBuilder(
-                  color: Colors.grey[300],
-                  activeColor: Colors.deepPurple[600],
-                  size: 5,
-                  activeSize: 6,
-                  space: 4,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActivityCard(BuildContext context, int index) {
-    final activities = [
-      {
-        'title': 'New Application Submitted',
-        'description': 'User123 submitted a new application',
-        'time': '2 hours ago',
-        'icon': Icons.file_present,
-        'color': Colors.blue,
-      },
-      {
-        'title': 'Application Approved',
-        'description': 'Admin approved User456\'s application',
-        'time': '5 hours ago',
-        'icon': Icons.check_circle,
-        'color': Colors.green,
-      },
-      {
-        'title': 'New User Registered',
-        'description': 'User789 joined the platform',
-        'time': '1 day ago',
-        'icon': Icons.person_add,
-        'color': Colors.purple,
-      },
-      {
-        'title': 'Application Rejected',
-        'description': 'Admin rejected User321\'s application',
-        'time': '2 days ago',
-        'icon': Icons.cancel,
-        'color': Colors.red,
-      },
-      {
-        'title': 'System Update',
-        'description': 'Platform updated to version 2.1.0',
-        'time': '3 days ago',
-        'icon': Icons.system_update,
-        'color': Colors.orange,
-      },
-    ];
-
-    final activity = activities[index];
-    final color = activity['color'] as Color;
-    final icon = activity['icon'] as IconData;
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              color: color.withOpacity(0.1),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: color.withOpacity(0.2),
-                  child: Icon(icon, color: color, size: 22),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    activity['title'] as String,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  activity['description'] as String,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[700],
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  activity['time'] as String,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[500],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
             ),
           ),
         ],

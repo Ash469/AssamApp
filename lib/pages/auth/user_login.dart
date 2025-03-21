@@ -4,6 +4,7 @@ import 'package:endgame/components/app_bar.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class UserLoginPage extends StatefulWidget {
   const UserLoginPage({Key? key}) : super(key: key);
@@ -20,6 +21,8 @@ class _UserLoginPageState extends State<UserLoginPage> {
 
   final TextEditingController _emailPhoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  final String apiBaseUrl = dotenv.env['BACKEND_URL'] ?? 'http://10.150.54.176:3000';
 
   @override
   void dispose() {
@@ -41,7 +44,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
 
         // Prepare login data with contact number
         final response = await http.post(
-          Uri.parse('http://192.168.128.52:3000/api/users/login'),
+          Uri.parse('$apiBaseUrl/api/login'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode({
             'identifier': _emailPhoneController.text, // Contact number
@@ -55,6 +58,8 @@ class _UserLoginPageState extends State<UserLoginPage> {
         if (response.statusCode == 200) {
           // Store user data and token
           final prefs = await SharedPreferences.getInstance();
+          // Clear admin token if present to avoid conflicts
+          await prefs.remove('adminToken');
           await prefs.setString('token', responseData['token']);
           
           // Store specific user details
@@ -76,8 +81,8 @@ class _UserLoginPageState extends State<UserLoginPage> {
             ),
           );
 
-          // Navigate to home screen
-          Navigator.of(context).pushReplacementNamed('/home');
+          // Navigate to home screen and remove all previous routes
+          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
         } else {
           // Show error message from server
           String errorMessage = responseData['message'] ?? 'Login failed';
@@ -105,6 +110,18 @@ class _UserLoginPageState extends State<UserLoginPage> {
         }
       }
     }
+  }
+
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Clear both tokens to ensure proper logout
+    await prefs.remove('token');
+    await prefs.remove('adminToken');
+    
+    if (!mounted) return;
+    
+    // Navigate to login screen
+    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
   }
 
   @override

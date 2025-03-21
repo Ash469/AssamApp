@@ -3,6 +3,7 @@ import 'package:endgame/components/app_bar.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'signup_success_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AdminSignup extends StatefulWidget {
   const AdminSignup({Key? key}) : super(key: key);
@@ -38,7 +39,7 @@ class _AdminSignupState extends State<AdminSignup> {
   bool _obscurePassword = true;
 
   // API URL
-  static const String apiUrl = 'http://192.168.128.52:3000/api/admin/register';
+  final  String apiUrl = dotenv.env['BACKEND_URL'] ?? 'http://10.150.54.176:3000';
 
   @override
   void dispose() {

@@ -3,6 +3,7 @@ import 'package:endgame/components/app_bar.dart';
 import 'signup_success_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class UserSignupPage extends StatefulWidget {
   const UserSignupPage({Key? key}) : super(key: key);
@@ -13,7 +14,7 @@ class UserSignupPage extends StatefulWidget {
 
 class _UserSignupPageState extends State<UserSignupPage> {
   // Add this constant at the top of the class
-  static const String apiUrl = 'http://192.168.128.52:3000/api/users/register'; // Update this line
+  final  String apiUrl = dotenv.env['BACKEND_URL'] ?? 'http://10.150.54.176:3000';
 
   // Current step index
   int _currentStep = 0;
@@ -153,10 +154,10 @@ class _UserSignupPageState extends State<UserSignupPage> {
   // Add this method inside the class
   Future<Map<String, dynamic>> _registerUser(Map<String, dynamic> userData) async {
     try {
-      print('Attempting to connect to: $apiUrl'); // Add this debug line
+      print('Attempting to connect to: $apiUrl/api/signup'); // Add this debug line
       
       final response = await http.post(
-        Uri.parse(apiUrl),
+        Uri.parse('$apiUrl/api/signup'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'firstName': userData['firstName'],
@@ -166,7 +167,7 @@ class _UserSignupPageState extends State<UserSignupPage> {
           'userId': userData['userId'],
           'contactNumber': userData['contactNumber'],
           'age': int.parse(userData['age']),
-          'gender': userData['gender'].toString().toLowerCase(),
+          'gender': userData['gender'],
           'password': userData['password'],
         }),
       );

@@ -1,38 +1,66 @@
 import 'package:endgame/homepage.dart';
-// import 'package:endgame/temp/front_page2.dart';
-import 'package:endgame/pages/auth/first_screen.dart'; 
-// import 'package:endgame/pages/home.dart';
-
-
+import 'package:endgame/pages/auth/first_screen.dart';
+import 'package:endgame/pages/admin/admin_home.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-
-void main() {
-  WidgetsFlutterBinding.ensureInitialized(); 
+void main() async {
+  await dotenv.load(fileName: ".env");
+  WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
-  ]).then((_) {
-    runApp(const MyApp());
-  });
+  ]);
+  
+  // Check if user or admin is already logged in
+  final prefs = await SharedPreferences.getInstance();
+  final String? userToken = prefs.getString('token');
+  final String? adminToken = prefs.getString('adminToken');
+  
+  final bool isUserLoggedIn = userToken != null;
+  final bool isAdminLoggedIn = adminToken != null;
+
+  runApp(MyApp(
+    isUserLoggedIn: isUserLoggedIn,
+    isAdminLoggedIn: isAdminLoggedIn
+  ));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isUserLoggedIn;
+  final bool isAdminLoggedIn;
+  
+  const MyApp({
+    super.key, 
+    required this.isUserLoggedIn,
+    required this.isAdminLoggedIn
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Determine initial route based on login status
+    String initialRoute;
+    if (isAdminLoggedIn) {
+      initialRoute = '/admin/home';
+    } else if (isUserLoggedIn) {
+      initialRoute = '/home';
+    } else {
+      initialRoute = '/login';
+    }
+    
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const FirstScreen(),
+      initialRoute: initialRoute,
       routes: {
-        '/home': (context) => const HomePage()
+        '/home': (context) => const HomePage(),
+        '/login': (context) => const FirstScreen(),
+        '/admin/home': (context) => const AdminHome(),
       },
     );
   }
