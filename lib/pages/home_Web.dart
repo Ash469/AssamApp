@@ -1,7 +1,8 @@
-import 'package:endgame/pages/edit_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:card_swiper/card_swiper.dart';
 import 'package:endgame/components/app_drawer.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'new_application.dart';
 import 'notifications.dart';
 import 'application_status.dart';
@@ -17,6 +18,25 @@ class HomeWeb extends StatefulWidget {
 }
 
 class _HomeState extends State<HomeWeb> {
+  String userName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userDataString = prefs.getString('userData');
+    if (userDataString != null) {
+      final userData = json.decode(userDataString);
+      setState(() {
+        userName = userData['firstName'] ?? 'User';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -153,7 +173,7 @@ class _HomeState extends State<HomeWeb> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Hello, Rajesh',
+                              'Hello, $userName',
                               style: Theme.of(context)
                                   .textTheme
                                   .headlineSmall
@@ -325,54 +345,54 @@ class _HomeState extends State<HomeWeb> {
           iconColor: Colors.indigo[600]!,
           bgColor: Colors.indigo[50]!,
         ),
-        _buildMenuItem(
-          icon: Image.asset(
-            'assets/appointment.png',
-            height: 38,
-            width: 38,
-          ),
-          label: 'Appointments',
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AppointmentPage(),
-            ),
-          ),
-          iconColor: Colors.red[600]!,
-          bgColor: Colors.red[50]!,
-        ),
-        _buildMenuItem(
-          icon: Image.asset(
-            'assets/invitation.png',
-            height: 38,
-            width: 38,
-          ),
-          label: 'Invitations',
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const Invitation(),
-            ),
-          ),
-          iconColor: Colors.purple[600]!,
-          bgColor: Colors.purple[50]!,
-        ),
-        _buildMenuItem(
-          icon: Image.asset(
-            'assets/edit_profile.png',
-            height: 38,
-            width: 38,
-          ),
-          label: 'Edit Profile',
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const EditProfile(),
-            ),
-          ),
-          iconColor: Colors.teal[600]!,
-          bgColor: Colors.teal[50]!,
-        ),
+        // _buildMenuItem(
+        //   icon: Image.asset(
+        //     'assets/appointment.png',
+        //     height: 38,
+        //     width: 38,
+        //   ),
+        //   label: 'Appointments',
+        //   onTap: () => Navigator.push(
+        //     context,
+        //     MaterialPageRoute(
+        //       builder: (context) => const AppointmentPage(),
+        //     ),
+        //   ),
+        //   iconColor: Colors.red[600]!,
+        //   bgColor: Colors.red[50]!,
+        // ),
+        // _buildMenuItem(
+        //   icon: Image.asset(
+        //     'assets/invitation.png',
+        //     height: 38,
+        //     width: 38,
+        //   ),
+        //   label: 'Invitations',
+        //   onTap: () => Navigator.push(
+        //     context,
+        //     MaterialPageRoute(
+        //       builder: (context) => const Invitation(),
+        //     ),
+        //   ),
+        //   iconColor: Colors.purple[600]!,
+        //   bgColor: Colors.purple[50]!,
+        // ),
+        // _buildMenuItem(
+        //   icon: Image.asset(
+        //     'assets/edit_profile.png',
+        //     height: 38,
+        //     width: 38,
+        //   ),
+        //   label: 'Edit Profile',
+        //   onTap: () => Navigator.push(
+        //     context,
+        //     MaterialPageRoute(
+        //       builder: (context) => const EditProfile(),
+        //     ),
+        //   ),
+        //   iconColor: Colors.teal[600]!,
+        //   bgColor: Colors.teal[50]!,
+        // ),
       ],
     );
   }
@@ -443,7 +463,7 @@ class _HomeState extends State<HomeWeb> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Hello, Rajesh',
+                      'Hello, $userName',
                       style: Theme.of(context)
                           .textTheme
                           .headlineSmall
@@ -554,54 +574,54 @@ class _HomeState extends State<HomeWeb> {
                     iconColor: Colors.indigo[600]!,
                     bgColor: Colors.indigo[50]!,
                   ),
-                  _buildMenuItem(
-                    icon: Image.asset(
-                      'assets/appointment.png',
-                      height: 38,
-                      width: 38,
-                    ),
-                    label: 'Appointments',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AppointmentPage(),
-                      ),
-                    ),
-                    iconColor: Colors.red[600]!,
-                    bgColor: Colors.red[50]!,
-                  ),
-                  _buildMenuItem(
-                    icon: Image.asset(
-                      'assets/invitation.png',
-                      height: 38,
-                      width: 38,
-                    ),
-                    label: 'Invitations',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const Invitation(),
-                      ),
-                    ),
-                    iconColor: Colors.purple[600]!,
-                    bgColor: Colors.purple[50]!,
-                  ),
-                  _buildMenuItem(
-                    icon: Image.asset(
-                      'assets/edit_profile.png',
-                      height: 38,
-                      width: 38,
-                    ),
-                    label: 'Edit Profile',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const EditProfile(),
-                      ),
-                    ),
-                    iconColor: Colors.teal[600]!,
-                    bgColor: Colors.teal[50]!,
-                  ),
+                  // _buildMenuItem(
+                  //   icon: Image.asset(
+                  //     'assets/appointment.png',
+                  //     height: 38,
+                  //     width: 38,
+                  //   ),
+                  //   label: 'Appointments',
+                  //   onTap: () => Navigator.push(
+                  //     context,
+                  //     MaterialPageRoute(
+                  //       builder: (context) => const AppointmentPage(),
+                  //     ),
+                  //   ),
+                  //   iconColor: Colors.red[600]!,
+                  //   bgColor: Colors.red[50]!,
+                  // ),
+                  // _buildMenuItem(
+                  //   icon: Image.asset(
+                  //     'assets/invitation.png',
+                  //     height: 38,
+                  //     width: 38,
+                  //   ),
+                  //   label: 'Invitations',
+                  //   onTap: () => Navigator.push(
+                  //     context,
+                  //     MaterialPageRoute(
+                  //       builder: (context) => const Invitation(),
+                  //     ),
+                  //   ),
+                  //   iconColor: Colors.purple[600]!,
+                  //   bgColor: Colors.purple[50]!,
+                  // ),
+                  // _buildMenuItem(
+                  //   icon: Image.asset(
+                  //     'assets/edit_profile.png',
+                  //     height: 38,
+                  //     width: 38,
+                  //   ),
+                  //   label: 'Edit Profile',
+                  //   onTap: () => Navigator.push(
+                  //     context,
+                  //     MaterialPageRoute(
+                  //       builder: (context) => const EditProfile(),
+                  //     ),
+                  //   ),
+                  //   iconColor: Colors.teal[600]!,
+                  //   bgColor: Colors.teal[50]!,
+                  // ),
                 ],
               );
             },
@@ -860,7 +880,7 @@ class _HomeState extends State<HomeWeb> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Welcome, Rajesh',
+                  'Welcome, $userName',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:endgame/components/app_bar.dart';
-import 'signup_success_screen.dart';  // Add this import
+import 'signup_success_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class UserSignupPage extends StatefulWidget {
   const UserSignupPage({Key? key}) : super(key: key);
@@ -10,6 +12,9 @@ class UserSignupPage extends StatefulWidget {
 }
 
 class _UserSignupPageState extends State<UserSignupPage> {
+  // Add this constant at the top of the class
+  static const String apiUrl = 'http://192.168.128.52:3000/api/users/register'; // Update this line
+
   // Current step index
   int _currentStep = 0;
   
@@ -87,8 +92,7 @@ class _UserSignupPageState extends State<UserSignupPage> {
   }
 
   // Handle form submission
-  void _submitForm() {
-    // Collect all form data
+  void _submitForm() async {
     final userData = {
       'firstName': _firstNameController.text,
       'middleName': _middleNameController.text,
@@ -100,16 +104,102 @@ class _UserSignupPageState extends State<UserSignupPage> {
       'password': _passwordController.text,
       'userId': _userIdController.text,
     };
-    
-    // TODO: Implement the API call or data storage logic
-    print('Form submitted: $userData');
 
-    // Navigate to success screen instead of showing a snackbar
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => const SignupSuccessScreen(),
-      ),
-    );
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final result = await _registerUser(userData);
+
+      // Hide loading indicator
+      Navigator.of(context).pop();
+
+      if (result['success']) {
+        // Navigate to success screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const SignupSuccessScreen(),
+          ),
+        );
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // Hide loading indicator
+      Navigator.of(context).pop();
+      
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('An error occurred. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Add this method inside the class
+  Future<Map<String, dynamic>> _registerUser(Map<String, dynamic> userData) async {
+    try {
+      print('Attempting to connect to: $apiUrl'); // Add this debug line
+      
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'firstName': userData['firstName'],
+          'middleName': userData['middleName'],
+          'lastName': userData['lastName'],
+          'email': userData['email'],
+          'userId': userData['userId'],
+          'contactNumber': userData['contactNumber'],
+          'age': int.parse(userData['age']),
+          'gender': userData['gender'].toString().toLowerCase(),
+          'password': userData['password'],
+        }),
+      );
+
+      print('Response status code: ${response.statusCode}'); // Add this debug line
+      print('Response body: ${response.body}'); // Add this debug line
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 201) {
+        return {'success': true, 'message': data['message']};
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Registration failed: ${response.statusCode}'
+        };
+      }
+    } on FormatException catch (_) {
+      return {
+        'success': false,
+        'message': 'Invalid response from server. Please try again later.'
+      };
+    } on http.ClientException catch (_) {
+      return {
+        'success': false,
+        'message': 'Unable to connect to server. Please check your internet connection.'
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'An unexpected error occurred. Please try again later. (Error: ${e.toString()})'
+      };
+    }
   }
 
   @override

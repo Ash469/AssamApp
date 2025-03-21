@@ -5,6 +5,8 @@ import 'package:endgame/pages/new_application.dart';
 import 'package:endgame/pages/application_status.dart';
 import 'package:endgame/pages/appointment.dart';
 import 'package:endgame/pages/contact.dart';
+import 'package:endgame/pages/profile.dart';
+
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -60,6 +62,12 @@ class AppDrawer extends StatelessWidget {
               const Icon(Icons.info, color: Colors.blue),
               'About US',
               const About(),
+            ),
+            _buildDrawerListTile(
+              context,
+              const Icon(Icons.person, color: Colors.blue),
+              'Profile',
+              const ProfilePage(),
             ),
           ],
         ),

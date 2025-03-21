@@ -21,12 +21,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
         child: AppBar(
-          // leading: IconButton(
-          //   icon: const Icon(Icons.menu),
-          //   onPressed: () {
-          //       Scaffold.of(context).openDrawer();
-          //   },
-          // ),
           title: Text(title),
           backgroundColor: Colors.transparent,
           elevation: 0,

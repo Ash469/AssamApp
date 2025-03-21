@@ -1,6 +1,8 @@
-import 'package:endgame/temp/front_page2.dart';
+import 'package:endgame/homepage.dart';
+// import 'package:endgame/temp/front_page2.dart';
 import 'package:endgame/pages/auth/first_screen.dart'; 
-// import 'homepage.dart';
+// import 'package:endgame/pages/home.dart';
+
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,7 +30,10 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const FirstScreen()
-          );
+      home: const FirstScreen(),
+      routes: {
+        '/home': (context) => const HomePage()
+      },
+    );
   }
 }

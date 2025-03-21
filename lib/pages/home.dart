@@ -1,7 +1,8 @@
 import 'package:endgame/components/app_drawer.dart';
-import 'package:endgame/pages/edit_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:card_swiper/card_swiper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 import 'new_application.dart';
 import 'notifications.dart';
@@ -18,6 +19,25 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  String userName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userDataString = prefs.getString('userData');
+    if (userDataString != null) {
+      final userData = json.decode(userDataString);
+      setState(() {
+        userName = userData['firstName'] ?? 'User';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -92,7 +112,7 @@ class _HomeState extends State<Home> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Hello, Rajesh',
+                                'Hello, $userName',
                                 style: Theme.of(context)
                                     .textTheme
                                     .headlineSmall

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:endgame/components/app_bar.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class UserLoginPage extends StatefulWidget {
   const UserLoginPage({Key? key}) : super(key: key);
@@ -11,8 +14,9 @@ class UserLoginPage extends StatefulWidget {
 
 class _UserLoginPageState extends State<UserLoginPage> {
   final _formKey = GlobalKey<FormState>();
-  bool _isEmailLogin = true; // Toggle between email and phone login
+  bool _isEmailLogin = true;
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
   final TextEditingController _emailPhoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -24,12 +28,82 @@ class _UserLoginPageState extends State<UserLoginPage> {
     super.dispose();
   }
 
-  void _attemptLogin() {
+  void _attemptLogin() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement your login logic here
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Attempting to login...')),
-      );
+      setState(() => _isLoading = true);
+      try {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Logging in...'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        // Prepare login data with contact number
+        final response = await http.post(
+          Uri.parse('http://192.168.128.52:3000/api/users/login'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({
+            'identifier': _emailPhoneController.text, // Contact number
+            'password': _passwordController.text,
+          }),
+        );
+
+        ScaffoldMessenger.of(context).clearSnackBars();
+        final responseData = json.decode(response.body);
+
+        if (response.statusCode == 200) {
+          // Store user data and token
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('token', responseData['token']);
+          
+          // Store specific user details
+          final userData = {
+            'firstName': responseData['user']['firstName'],
+            'lastName': responseData['user']['lastName'],
+            'contactNumber': responseData['user']['contactNumber'],
+            'userId': responseData['user']['userId'],
+          };
+          await prefs.setString('userData', json.encode(userData));
+
+          if (!mounted) return;
+
+          // Show success message with user's name
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Welcome back, ${userData['firstName']}!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Navigate to home screen
+          Navigator.of(context).pushReplacementNamed('/home');
+        } else {
+          // Show error message from server
+          String errorMessage = responseData['message'] ?? 'Login failed';
+          if (errorMessage.contains('No user found')) {
+            errorMessage = 'No user found with this phone number';
+          }
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Connection error: Please check your internet connection'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Add this import
-import 'package:endgame/components/app_bar.dart'; // Add this import
+import 'package:flutter/services.dart';
+import 'package:endgame/components/app_bar.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:endgame/pages/admin/admin_home.dart';
 
 class AdminLoginPage extends StatefulWidget {
   const AdminLoginPage({Key? key}) : super(key: key);
@@ -13,6 +17,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isEmailLogin = true; // Toggle between email and phone login
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
   final TextEditingController _emailPhoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -24,12 +29,77 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
     super.dispose();
   }
 
-  void _attemptLogin() {
+  void _attemptLogin() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement your login logic here
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Attempting to login...')),
-      );
+      setState(() => _isLoading = true);
+      try {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Logging in...'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        final response = await http.post(
+          Uri.parse('http://192.168.128.52:3000/api/admin/login'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({
+            'identifier': _emailPhoneController.text,
+            'password': _passwordController.text,
+          }),
+        );
+
+        ScaffoldMessenger.of(context).clearSnackBars();
+        final responseData = json.decode(response.body);
+
+        if (response.statusCode == 200) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('adminToken', responseData['token']);
+          
+          final adminData = {
+            'firstname': responseData['admin']['firstName'],
+            'email': responseData['admin']['email'],
+            'adminId': responseData['admin']['adminId'],
+          };
+          await prefs.setString('adminData', json.encode(adminData));
+
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Welcome back, ${adminData['firstname']}!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Replace this named route navigation
+          // Navigator.of(context).pushReplacementNamed('/admin/dashboard');
+          
+          // With direct navigation to the AdminHome page
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const AdminHome()),
+          );
+        } else {
+          String errorMessage = responseData['message'] ?? 'Login failed';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Connection error: Please check your internet connection'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 

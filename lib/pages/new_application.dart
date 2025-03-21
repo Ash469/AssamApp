@@ -17,9 +17,7 @@ class _NewApplicationState extends State<NewApplication> {
   final _formKey = GlobalKey<FormState>();
 
   // Controllers for text fields
-  final TextEditingController _firstNameController = TextEditingController();
-  final TextEditingController _middleNameController = TextEditingController();
-  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _phoneNoController = TextEditingController();
   final TextEditingController _occupationController = TextEditingController();
@@ -70,20 +68,24 @@ class _NewApplicationState extends State<NewApplication> {
     }
   }
 
+  bool _isLoading = false;
+
   Future<void> _submitApplication() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      var uri = Uri.parse("http://192.168.11.13:3000/api/applications");
+      var uri = Uri.parse("http://192.168.128.52:3000/api/applications");
       var response = await http.post(
         uri,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "firstName": _firstNameController.text.trim(),
-          "middleName": _middleNameController.text.trim(),
-          "lastName": _lastNameController.text.trim(),
+          "fullName": _fullNameController.text.trim(),
           "age": int.tryParse(_ageController.text.trim()) ?? 0,
           "phoneNo": _phoneNoController.text.trim(),
           "gender": _selectedGender ?? "",
@@ -93,25 +95,49 @@ class _NewApplicationState extends State<NewApplication> {
           "villageWard": _selectedVillageWard ?? "",
           "category": _selectedCategory ?? "",
           "remarks": _remarksController.text.trim(),
-          "documenturl": _documentUrlController.text.trim(),
+          "documentUrl": _documentUrlController.text.trim(), // Changed from documenturl to documentUrl
         }),
       );
 
       if (response.statusCode == 201) {
-        // debugPrint('Created application ID: ${jsonDecode(response.body)['_id']}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Application Submitted Successfully!")),
+        if (!mounted) return;
+        debugPrint('Created application ID: ${jsonDecode(response.body)['_id']}');
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Success'),
+              content: const Text('Your application has been submitted successfully.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                    Navigator.of(context).pop(); // Go back to previous screen
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
         );
-        Navigator.pop(context);
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Failed to submit application: ${response.body}")),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: $e")),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -128,9 +154,7 @@ class _NewApplicationState extends State<NewApplication> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildTextField(label: 'First Name', controller: _firstNameController),
-                _buildTextField(label: 'Middle Name', controller: _middleNameController, validator: (value) => null, isRequired: false),
-                _buildTextField(label: 'Last Name', controller: _lastNameController),
+                _buildTextField(label: 'Full Name', controller: _fullNameController),
                 _buildTextField(label: 'Age', controller: _ageController, keyboardType: TextInputType.number),
                 _buildTextField(label: 'Phone No.', controller: _phoneNoController, keyboardType: TextInputType.phone),
                 _buildDropdownField(
@@ -176,7 +200,7 @@ class _NewApplicationState extends State<NewApplication> {
                     });
                   },
                 ),
-                _buildTextField(label: 'Add remarks', controller: _remarksController, maxLines: 3, isRequired: false),
+                _buildTextField(label: 'Add remarks', controller: _remarksController, maxLines: 3,isRequired: false),
                 // _buildTextField(label: 'Document URL', controller: _documentUrlController, validator: _validateDocumentUrl),
                 _buildDocumentUploadField(),
                 const SizedBox(height: 10),
@@ -217,13 +241,12 @@ class _NewApplicationState extends State<NewApplication> {
           border: const OutlineInputBorder(),
           contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
         ),
-        validator: validator ??
-            (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter $label';
-              }
-              return null;
-            },
+        validator: validator ?? (value) {
+          if (isRequired && (value == null || value.isEmpty)) {
+            return 'Please enter $label';
+          }
+          return null;  // Return null for non-required fields even if empty
+        },
       ),
     );
   }
@@ -277,33 +300,9 @@ class _NewApplicationState extends State<NewApplication> {
       width: double.infinity,
       margin: const EdgeInsets.only(top: 10.0),
       child: ElevatedButton.icon(
-        onPressed: () async {
+        onPressed: _isLoading ? null : () async {
           if (_formKey.currentState!.validate()) {
-            try {
-              await _submitApplication();
-              if (mounted) {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: const Text('Success'),
-                      content: const Text('Your application has been submitted successfully.'),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            Navigator.of(context).pop(); 
-                          },
-                          child: const Text('OK'),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              }
-            // ignore: empty_catches
-            } catch (e) {
-            }
+            await _submitApplication();
           }
         },
         style: ElevatedButton.styleFrom(
@@ -315,10 +314,19 @@ class _NewApplicationState extends State<NewApplication> {
           ),
           elevation: 3,
         ),
-        icon: const Icon(Icons.send),
-        label: const Text(
-          'SUBMIT APPLICATION',
-          style: TextStyle(
+        icon: _isLoading 
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            )
+          : const Icon(Icons.send),
+        label: Text(
+          _isLoading ? 'SUBMITTING...' : 'SUBMIT APPLICATION',
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
