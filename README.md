@@ -91,7 +91,7 @@ APK will be generated at: `build/app/outputs/flutter-apk/app-release.apk`
 
 ## Download
 
-[⬇️ Download Latest Release](https://github.com/Ash469/AssamApp/releases/download/v0/endgame.apk)
+[⬇️ Download Latest Release](https://github.com/Ash469/AssamApp/releases/download/v0.0/app-release.apk)
 
 ## Application Flow
 
