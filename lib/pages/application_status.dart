@@ -4,7 +4,12 @@ import 'dart:convert';
 import 'package:endgame/components/app_drawer.dart';
 import 'package:endgame/components/app_bar.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:url_launcher/url_launcher.dart'; // Add this import
+import 'package:url_launcher/url_launcher.dart';
+import 'package:endgame/utils/download_helper.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
+import 'package:endgame/utils/pdf_helper.dart';
 
 class ApplicationStatusPage extends StatefulWidget {
   const ApplicationStatusPage({super.key});
@@ -55,6 +60,79 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
         isLoading = false;
         errorMessage = 'Error: ${e.toString()}';
       });
+    }
+  }
+
+  Future<bool> _requestPermissions() async {
+    if (Platform.isAndroid) {
+      // Request storage permission for Android < 13
+      final storageStatus = await Permission.storage.request();
+      if (storageStatus.isGranted) {
+        return true;
+      }
+
+      // For Android 13+, request media permissions
+      final photos = await Permission.photos.request();
+      final videos = await Permission.videos.request();
+      final audio = await Permission.audio.request();
+
+      return photos.isGranted || videos.isGranted || audio.isGranted;
+    }
+    return true;
+  }
+
+  Future<void> _handleDownload(String? documentUrl, Map<String, dynamic> application) async {
+    if (documentUrl == null || documentUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No document available')),
+      );
+      return;
+    }
+
+    print('Attempting to create PDF with image: $documentUrl');
+
+    bool hasPermission = await _requestPermissions();
+    if (!hasPermission) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Storage permission is required to download files'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        await openAppSettings();
+      }
+      return;
+    }
+
+    // Show progress dialog
+    if (context.mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Generating PDF...'),
+              ],
+            ),
+          );
+        },
+      );
+    }
+
+    try {
+      if (context.mounted) {
+        await PdfHelper.generateAndDownloadPdf(application, documentUrl, context);
+      }
+    } finally {
+      if (context.mounted && Navigator.canPop(context)) {
+        Navigator.pop(context); // Close progress dialog
+      }
     }
   }
 
@@ -335,27 +413,8 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
                                             const BoxConstraints(), // Remove constraints
                                         icon: const Icon(Icons.download,
                                             color: Colors.teal, size: 20),
-                                        onPressed: () async {
-                                          final documentUrl =
-                                              application['documentUrl'];
-                                          if (documentUrl != null &&
-                                              documentUrl.isNotEmpty) {
-                                            try {
-                                              final Uri url =
-                                                  Uri.parse(documentUrl);
-                                              await launchUrl(url,
-                                                  mode: LaunchMode
-                                                      .externalApplication);
-                                            } catch (e) {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                    content: Text(
-                                                        'Error opening document: ${e.toString()}')),
-                                              );
-                                            }
-                                          }
-                                        },
+                                        onPressed: () => _handleDownload(
+                                            application['documentUrl'], application),
                                       ),
                                     ],
                                   ),
@@ -470,16 +529,7 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
               onPressed: () async {
                 final documentUrl = application['documentUrl'];
                 if (documentUrl != null && documentUrl.isNotEmpty) {
-                  try {
-                    final Uri url = Uri.parse(documentUrl);
-                    await launchUrl(url, mode: LaunchMode.externalApplication);
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content:
-                              Text('Error opening document: ${e.toString()}')),
-                    );
-                  }
+                  await DownloadHelper.downloadFile(documentUrl, context);
                 }
               },
               icon: const Icon(Icons.download),

@@ -294,7 +294,7 @@ class _AdminApplicationState extends State<AdminApplication> {
                               backgroundColor: Colors.deepPurple[100],
                               child: Text('${index + 1}'),
                             ),
-                            title: Text('Application #${application.id}'),
+                            // title: Text('Application #${application.id}'),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
