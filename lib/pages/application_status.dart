@@ -29,6 +29,9 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
   String? statusFilter;
   String? categoryFilter;
 
+  Set<int> selectedApplications = {};
+  bool isSelectionMode = false;
+
   @override
   void initState() {
     super.initState();
@@ -136,6 +139,61 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
     }
   }
 
+  Future<void> downloadSelectedApplications() async {
+    if (selectedApplications.isEmpty) return;
+
+    // Show progress dialog
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Generating PDFs...'),
+            ],
+          ),
+        );
+      },
+    );
+
+    try {
+      for (int index in selectedApplications) {
+        final application = filteredApplications.reversed.toList()[index];
+        final documentUrl = application['documentUrl'];
+        if (documentUrl != null && documentUrl.isNotEmpty) {
+          await PdfHelper.generateAndDownloadPdf(application, documentUrl, context);
+        }
+      }
+    } finally {
+      if (context.mounted) {
+        Navigator.pop(context); // Close progress dialog
+        setState(() {
+          selectedApplications.clear();
+          isSelectionMode = false;
+        });
+      }
+    }
+  }
+
+  void toggleSelection(int index) {
+    setState(() {
+      if (selectedApplications.contains(index)) {
+        selectedApplications.remove(index);
+        if (selectedApplications.isEmpty) {
+          isSelectionMode = false;
+        }
+      } else {
+        selectedApplications.add(index);
+        isSelectionMode = true;
+      }
+    });
+  }
+
   void applyFilters() {
     setState(() {
       filteredApplications = applications.where((app) {
@@ -167,6 +225,11 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
               backgroundColor: Colors.transparent,
               elevation: 0,
               actions: [
+                if (isSelectionMode)
+                  IconButton(
+                    icon: const Icon(Icons.download),
+                    onPressed: downloadSelectedApplications,
+                  ),
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.filter_list),
                   onSelected: (String value) {
@@ -375,7 +438,14 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
                                 contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 6), // Minimal padding
                                 onTap: () {
-                                  _showApplicationDetails(context, application);
+                                  if (isSelectionMode) {
+                                    toggleSelection(index);
+                                  } else {
+                                    _showApplicationDetails(context, application);
+                                  }
+                                },
+                                onLongPress: () {
+                                  toggleSelection(index);
                                 },
                                 leading: CircleAvatar(
                                   backgroundColor: Colors.teal[100],
@@ -411,10 +481,23 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
                                             .zero, // Remove padding from icon button
                                         constraints:
                                             const BoxConstraints(), // Remove constraints
-                                        icon: const Icon(Icons.download,
-                                            color: Colors.teal, size: 20),
-                                        onPressed: () => _handleDownload(
-                                            application['documentUrl'], application),
+                                        icon: Icon(
+                                          selectedApplications.contains(index)
+                                              ? Icons.check_circle
+                                              : Icons.download,
+                                          color: selectedApplications.contains(index)
+                                              ? Colors.green
+                                              : Colors.teal,
+                                          size: 20,
+                                        ),
+                                        onPressed: () {
+                                          if (isSelectionMode) {
+                                            toggleSelection(index);
+                                          } else {
+                                            _handleDownload(
+                                                application['documentUrl'], application);
+                                          }
+                                        },
                                       ),
                                     ],
                                   ),

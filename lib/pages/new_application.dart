@@ -54,13 +54,25 @@ class _NewApplicationState extends State<NewApplication> {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'],
-        withData: true, // Ensure we get the file bytes
+        allowedExtensions: ['jpg', 'jpeg', 'png'], // Remove pdf, doc, docx
+        withData: true,
       );
 
       if (result != null) {
         final fileBytes = result.files.single.bytes;
         final fileName = result.files.single.name;
+        
+        // Validate file type
+        if (!fileName.toLowerCase().endsWith('.jpg') && 
+            !fileName.toLowerCase().endsWith('.jpeg') && 
+            !fileName.toLowerCase().endsWith('.png')) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Please select only image files (JPG, JPEG, PNG)")),
+            );
+          }
+          return;
+        }
         
         debugPrint('Selected file: $fileName, bytes length: ${fileBytes?.length}');
         
@@ -474,7 +486,7 @@ class _NewApplicationState extends State<NewApplication> {
         initialValue: _selectedFileName,
         validator: (value) {
           if (_selectedFileBytes == null) {
-            return 'Please select a document';
+            return 'Please select an image document';
           }
           return null;
         },
@@ -487,12 +499,25 @@ class _NewApplicationState extends State<NewApplication> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Document Upload *',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.black54,
-                ),
+              const Row(
+                children: [
+                  Text(
+                    'Document Upload *',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.black54,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    '(JPG, JPEG, PNG only)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               InkWell(
