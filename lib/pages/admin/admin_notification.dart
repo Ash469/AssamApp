@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AdminNotification extends StatefulWidget {
   const AdminNotification({super.key});
@@ -9,167 +11,255 @@ class AdminNotification extends StatefulWidget {
 }
 
 class _AdminNotificationState extends State<AdminNotification> {
-  final List<Map<String, dynamic>> _notifications = [
-    {
-      'title': 'System Maintenance',
-      'content': 'The system will be down for maintenance on Saturday.',
-      'date': '2025-03-25',
-      'active': true,
-    },
-    {
-      'title': 'New Feature Announcement',
-      'content': 'We have added new features to the application process.',
-      'date': '2025-03-20',
-      'active': true,
-    },
-    {
-      'title': 'Holiday Notice',
-      'content': 'Office will be closed during the upcoming holidays.',
-      'date': '2025-03-15',
-      'active': false,
-    },
-  ];
+  final String apiBaseUrl = dotenv.env['BACKEND_URL'] ?? 'http://10.150.54.176:3000';
+  bool _isSubmitting = false;
+  String? _error;
 
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
 
+  Future<void> _addNotification() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isSubmitting = true;
+      _error = null;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/api/notification'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'title': _titleController.text,
+          'content': _contentController.text,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        _titleController.clear();
+        _contentController.clear();
+        _showSnackBar('Notification posted successfully');
+      } else {
+        throw Exception('Failed to post notification');
+      }
+    } catch (e) {
+      setState(() => _error = e.toString());
+      _showSnackBar('Error: ${e.toString()}', isError: true);
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notification Management'),
-        backgroundColor: Colors.amber[800],
+        title: const Text('Post Notification'),
+        backgroundColor: const Color(0xFF0d9488),
+        elevation: 0,
         foregroundColor: Colors.white,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _notifications.length,
-              itemBuilder: (context, index) {
-                final notification = _notifications[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  elevation: 2,
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(16),
-                    title: Text(
-                      notification['title'],
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF0d9488),
+              Color(0xFFF3F4F6),
+              Color(0xFFF3F4F6),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
-                        Text(notification['content']),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Date: ${notification['date']}',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 12,
+                    ],
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.notifications_active,
+                                color: Color(0xFF0d9488),
+                                size: 30,
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                'Create New Notification',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF115e59),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          TextFormField(
+                            controller: _titleController,
+                            decoration: InputDecoration(
+                              labelText: 'Notification Title',
+                              prefixIcon: const Icon(Icons.title, color: Color(0xFF0d9488)),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFF0d9488), width: 2),
+                              ),
+                              filled: true,
+                              fillColor: Colors.grey[50],
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a title';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 20),
+                          TextFormField(
+                            controller: _contentController,
+                            decoration: InputDecoration(
+                              labelText: 'Notification Content',
+                              alignLabelWithHint: true,
+                              prefixIcon: const Padding(
+                                padding: EdgeInsets.only(bottom: 84),
+                                child: Icon(Icons.message, color: Color(0xFF0d9488)),
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFF0d9488), width: 2),
+                              ),
+                              filled: true,
+                              fillColor: Colors.grey[50],
+                            ),
+                            maxLines: 5,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter content';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            height: 56,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF0d9488), Color(0xFF0F766E)],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF0d9488).withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ElevatedButton(
+                              onPressed: _isSubmitting ? null : _addNotification,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                foregroundColor: Colors.white,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: _isSubmitting
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.send),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Post Notification',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                          if (_error != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 16),
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.red[50],
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.red[200]!),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.error_outline, color: Colors.red[700]),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _error!,
+                                        style: TextStyle(color: Colors.red[700]),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                            Switch(
-                              value: notification['active'],
-                              onChanged: (value) {
-                                setState(() {
-                                  _notifications[index]['active'] = value;
-                                });
-                              },
-                              activeColor: Colors.amber[800],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: () {
-                        setState(() {
-                          _notifications.removeAt(index);
-                        });
-                      },
+                        ],
+                      ),
                     ),
                   ),
-                );
-              },
+                ),
+              ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.grey[100],
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextFormField(
-                    controller: _titleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Notification Title',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a title';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _contentController,
-                    decoration: const InputDecoration(
-                      labelText: 'Notification Content',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 3,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter content';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        setState(() {
-                          _notifications.add({
-                            'title': _titleController.text,
-                            'content': _contentController.text,
-                            'date': DateTime.now().toString().substring(0, 10),
-                            'active': true,
-                          });
-                          _titleController.clear();
-                          _contentController.clear();
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Notification added')),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber[800],
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: const Text('Add Notification'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
       ),
     );
   }

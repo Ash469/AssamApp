@@ -194,6 +194,22 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
     });
   }
 
+  void selectAll() {
+    setState(() {
+      if (selectedApplications.length == filteredApplications.length) {
+        // If all are selected, deselect all
+        selectedApplications.clear();
+        isSelectionMode = false;
+      } else {
+        // Select all
+        selectedApplications = Set.from(
+          List.generate(filteredApplications.length, (index) => index),
+        );
+        isSelectionMode = true;
+      }
+    });
+  }
+
   void applyFilters() {
     setState(() {
       filteredApplications = applications.where((app) {
@@ -225,11 +241,23 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
               backgroundColor: Colors.transparent,
               elevation: 0,
               actions: [
-                if (isSelectionMode)
+                if (isSelectionMode) ...[
+                  IconButton(
+                    icon: Icon(
+                      selectedApplications.length == filteredApplications.length
+                          ? Icons.select_all
+                          : Icons.deselect,
+                    ),
+                    onPressed: selectAll,
+                    tooltip: selectedApplications.length == filteredApplications.length
+                        ? 'Deselect All'
+                        : 'Select All',
+                  ),
                   IconButton(
                     icon: const Icon(Icons.download),
                     onPressed: downloadSelectedApplications,
                   ),
+                ],
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.filter_list),
                   onSelected: (String value) {
@@ -434,7 +462,7 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
                                   application['fullName'] ?? 'No Name';
 
                               return ListTile(
-                                dense: false, // Makes the ListTile more compact
+                                dense: false,
                                 contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 6), // Minimal padding
                                 onTap: () {
@@ -447,11 +475,17 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
                                 onLongPress: () {
                                   toggleSelection(index);
                                 },
-                                leading: CircleAvatar(
-                                  backgroundColor: Colors.teal[100],
-                                  radius: 20, // Smaller radius
-                                  child: Text('${index + 1}'),
-                                ),
+                                leading: isSelectionMode
+                                  ? Checkbox(
+                                      value: selectedApplications.contains(index),
+                                      onChanged: (_) => toggleSelection(index),
+                                      activeColor: Colors.teal,
+                                    )
+                                  : CircleAvatar(
+                                      backgroundColor: Colors.teal[100],
+                                      radius: 20, // Smaller radius
+                                      child: Text('${index + 1}'),
+                                    ),
                                 title: Text(
                                   fullName,
                                   style: const TextStyle(
@@ -465,41 +499,18 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
                                   style: TextStyle(
                                       color: Colors.grey[700], fontSize: 14),
                                 ),
-                                trailing: SizedBox(
-                                  width:
-                                      140, // Reduced width to prevent overflow
+                                trailing: Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: SizedBox(
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Flexible(
-                                        child: _buildStatusChip(
-                                            application['status']),
-                                      ),
-                                      // const SizedBox(width: 2),
-                                      IconButton(
-                                        padding: EdgeInsets
-                                            .zero, // Remove padding from icon button
-                                        constraints:
-                                            const BoxConstraints(), // Remove constraints
-                                        icon: Icon(
-                                          selectedApplications.contains(index)
-                                              ? Icons.check_circle
-                                              : Icons.download,
-                                          color: selectedApplications.contains(index)
-                                              ? Colors.green
-                                              : Colors.teal,
-                                          size: 20,
-                                        ),
-                                        onPressed: () {
-                                          if (isSelectionMode) {
-                                            toggleSelection(index);
-                                          } else {
-                                            _handleDownload(
-                                                application['documentUrl'], application);
-                                          }
-                                        },
-                                      ),
+                                    Flexible(
+                                      child: _buildStatusChip(
+                                        application['status']),
+                                    ),
                                     ],
+                                  ),
                                   ),
                                 ),
                               );

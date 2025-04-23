@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:endgame/homepage.dart' as home_page;
 import 'package:endgame/pages/new_application.dart';
 import 'package:endgame/pages/application_status.dart';
-import 'package:endgame/pages/appointment.dart';
+// import 'package:endgame/pages/appointment.dart';
 import 'package:endgame/pages/contact.dart';
 import 'package:endgame/pages/profile.dart';
 
@@ -44,12 +44,6 @@ class AppDrawer extends StatelessWidget {
               const Icon(Icons.group, color: Colors.blue),
               'Application Status',
               const ApplicationStatusPage(),
-            ),
-            _buildDrawerListTile(
-              context,
-              const Icon(Icons.calendar_month, color: Colors.blue),
-              'Appointment',
-              const AppointmentPage(),
             ),
             _buildDrawerListTile(
               context,

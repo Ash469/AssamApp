@@ -8,8 +8,6 @@ import 'new_application.dart';
 import 'notifications.dart';
 import 'application_status.dart';
 import 'summary.dart';
-import 'appointment.dart';
-import 'invitation.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -46,7 +44,7 @@ class _HomeState extends State<Home> {
         preferredSize: const Size.fromHeight(450),
         child: Stack(
           clipBehavior: Clip.none,
-          children: [      
+          children: [
             Container(
               height: 800,
               decoration: const BoxDecoration(
@@ -55,99 +53,97 @@ class _HomeState extends State<Home> {
                   fit: BoxFit.cover,
                 ),
               ),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 60, 16, 22),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Builder(
-                            builder: (context) => GestureDetector(
-                              onTap: () {
-                                Scaffold.of(context).openDrawer();
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const CircleAvatar(
-                                  radius: 40,
-                                  backgroundImage: AssetImage('assets/logo.jpg'),
-                                ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 60, 16, 22),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Builder(
+                          builder: (context) => GestureDetector(
+                            onTap: () {
+                              Scaffold.of(context).openDrawer();
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const CircleAvatar(
+                                radius: 40,
+                                backgroundImage: AssetImage('assets/logo.jpg'),
                               ),
                             ),
                           ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              shape: BoxShape.circle,
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.notifications,
+                              color: Colors.white,
+                              size: 24,
                             ),
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.notifications,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const Notifications(),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const Notifications(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 14),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hello, $userName',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineSmall
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 26,
+                                    letterSpacing: 1.5,
                                   ),
-                                );
-                              },
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Smart Office, Smarter Workdays',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: Colors.white.withOpacity(0.8),
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 16,
+                                    letterSpacing: 0.8,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 14),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Hello, $userName',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineSmall
-                                    ?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 26,
-                                      letterSpacing: 1.5,
-                                    ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Smart Office, Smarter Workdays',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: Colors.white.withOpacity(0.8),
-                                      fontWeight: FontWeight.w400,
-                                      fontSize: 16,
-                                      letterSpacing: 0.8,
-                                    ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                
+                  ),
+                ],
               ),
             ),
             Positioned(
-              // top: 250,
-              top:300,
+              top: 300,
               left: 0,
               right: 0,
               child: Column(
@@ -162,150 +158,128 @@ class _HomeState extends State<Home> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // const SizedBox(height: 80),
             const SizedBox(height: 40),
             _buildSwiper(),
           ],
         ),
       ),
-      
-     
     );
   }
 
   Widget _buildHomePage() {
-    return SizedBox(
-      height: 350,
+    final screenSize = MediaQuery.of(context).size;
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 1),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: 18),
-            padding: const EdgeInsets.fromLTRB(10,2,10,2),
+            margin: EdgeInsets.symmetric(horizontal: screenSize.width * 0.05),
+            padding: EdgeInsets.symmetric(
+              vertical: 8, 
+              horizontal: screenSize.width * 0.03,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
-                boxShadow: [
+              border: Border.all(
+                color: Colors.blue.withOpacity(0.5),
+                width: 2.0,
+              ),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white,
+                  Colors.blue.shade50.withOpacity(0.3),
+                ],
+              ),
+              boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
+                  color: Colors.blue.withOpacity(0.1),
+                  blurRadius: 15,
+                  spreadRadius: 1,
                   offset: const Offset(0, 5),
+                ),
+                BoxShadow(
+                  color: Colors.indigo.withOpacity(0.05),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                  offset: const Offset(0, 10),
                 ),
               ],
             ),
             child: Column(
               children: [
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 3,
-                  mainAxisSpacing: 5,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: 1.0,
-                  children: [
-                    _buildMenuItem(
-                      icon: Image.asset(
-                        'assets/new_application.png',
-                        height: 38,
-                        width: 38,
-                      ),
-                      label: 'New\nApplication',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NewApplication(),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    return GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 3,
+                      mainAxisSpacing: constraints.maxWidth < 300 ? 2 : 5,
+                      crossAxisSpacing: constraints.maxWidth < 300 ? 5 : 10,
+                      childAspectRatio: constraints.maxWidth < 300 ? 1.2 : 0.9,
+                      padding: EdgeInsets.all(constraints.maxWidth * 0.02),
+                      children: [
+                        _buildMenuItem(
+                          icon: Image.asset(
+                            'assets/new_application.png',
+                            height: 38,
+                            width: 38,
+                          ),
+                          label: 'New\nApplication',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const NewApplication(),
+                            ),
+                          ),
+                          iconColor: Colors.blue[600]!,
+                          bgColor: Colors.blue[50]!,
                         ),
-                      ),
-                      iconColor: Colors.blue[600]!,
-                      bgColor: Colors.blue[50]!,
-                    ),
-                    _buildMenuItem(
-                      icon: Image.asset(
-                        'assets/application_status.png',
-                        height: 38,
-                        width: 38,
-                      ),
-                      label: 'Application\nStatus',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ApplicationStatusPage(),
+                        _buildMenuItem(
+                          icon: Image.asset(
+                            'assets/application_status.png',
+                            height: 38,
+                            width: 38,
+                          ),
+                          label: 'Application\nStatus',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ApplicationStatusPage(),
+                            ),
+                          ),
+                          iconColor: Colors.indigo[600]!,
+                          bgColor: Colors.indigo[50]!,
                         ),
-                      ),
-                      iconColor: Colors.indigo[600]!,
-                      bgColor: Colors.indigo[50]!,
-                    ),
-                    _buildMenuItem(
-                      icon: Image.asset(
-                        'assets/summary.png',
-                        height: 38,
-                        width: 38,
-                      ),
-                      label: 'Summary',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SummaryPage(),
+                        _buildMenuItem(
+                          icon: Image.asset(
+                            'assets/summary.png',
+                            height: 38,
+                            width: 38,
+                          ),
+                          label: 'Summary',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SummaryPage(),
+                            ),
+                          ),
+                          iconColor: Colors.indigo[600]!,
+                          bgColor: Colors.indigo[50]!,
                         ),
-                      ),
-                      iconColor: Colors.indigo[600]!,
-                      bgColor: Colors.indigo[50]!,
-                    ),
-                    // _buildMenuItem(
-                    //   icon: Image.asset(
-                    //     'assets/appointment.png',
-                    //     height: 38,
-                    //     width: 38,
-                    //   ),
-                    //   label: 'Appointments',
-                    //   onTap: () => Navigator.push(
-                    //     context,
-                    //     MaterialPageRoute(
-                    //       builder: (context) => const AppointmentPage(),
-                    //     ),
-                    //   ),
-                    //   iconColor: Colors.red[600]!,
-                    //   bgColor: Colors.red[50]!,
-                    // ),
-                    // _buildMenuItem(
-                    //   icon: Image.asset(
-                    //     'assets/invitation.png',
-                    //     height: 38,
-                    //     width: 38,
-                    //   ),
-                    //   label: 'Invitations',
-                    //   onTap: () => Navigator.push(
-                    //     context,
-                    //     MaterialPageRoute(
-                    //       builder: (context) => const Invitation(),
-                    //     ),
-                    //   ),
-                    //   iconColor: Colors.purple[600]!,
-                    //   bgColor: Colors.purple[50]!,
-                    // ),
-                    // _buildMenuItem(
-                    //   icon: Image.asset(
-                    //     'assets/edit_profile.png',
-                    //     height: 38,
-                    //     width: 38,
-                    //   ),
-                    //   label: 'Edit Profile',
-                    //   onTap: () => Navigator.push(
-                    //     context,
-                    //     MaterialPageRoute(
-                    //       builder: (context) => const EditProfile(),
-                    //     ),
-                    //   ),
-                    //   iconColor: Colors.teal[600]!,
-                    //   bgColor: Colors.teal[50]!,
-                    // ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
           ),
           Padding(
-            // padding: const EdgeInsets.fromLTRB(24, 10, 24, 5),
-            padding: const EdgeInsets.fromLTRB(24, 30, 24, 5),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 5),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -350,26 +324,33 @@ class _HomeState extends State<Home> {
   }) {
     return InkWell(
       onTap: onTap,
-
+      borderRadius: BorderRadius.circular(16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: bgColor,
-              borderRadius: BorderRadius.circular(36),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: iconColor.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             child: icon,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             label,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 13,
               height: 1.2,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
               color: Colors.black87,
             ),
           ),
@@ -385,12 +366,12 @@ class _HomeState extends State<Home> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 15,
             offset: const Offset(0, 5),
           ),
         ],
@@ -399,33 +380,45 @@ class _HomeState extends State<Home> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.all(Radius.circular(12)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             child: Image.asset(
               image,
               width: double.infinity,
-              height: 150,
-              fit: BoxFit.fill,
+              height: 160,
+              fit: BoxFit.cover,
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
+                    letterSpacing: 0.3,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  date,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 14,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      date,
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -438,25 +431,28 @@ class _HomeState extends State<Home> {
   Widget _buildSwiper() {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 30),
-      height: 200,
+      height: 220,
       width: double.infinity,
       child: Swiper(
         itemBuilder: (BuildContext context, int index) {
           return _buildEventCard(context, index);
         },
         itemCount: 5,
-        viewportFraction: 0.7,
-        scale: 0.75, 
+        viewportFraction: 0.8,
+        scale: 0.85,
         pagination: SwiperPagination(
-          margin: const EdgeInsets.only(top: 26),
+          margin: const EdgeInsets.only(top: 20),
           builder: DotSwiperPaginationBuilder(
             color: Colors.grey[300],
-            activeColor: Colors.blue[600],
-            size: 5,
-            activeSize: 6,
-            space: 4,
+            activeColor: Colors.blue[700],
+            size: 6,
+            activeSize: 8,
+            space: 5,
           ),
         ),
+        autoplay: true,
+        autoplayDelay: 5000,
+        duration: 800,
       ),
     );
   }
@@ -466,27 +462,27 @@ class _HomeState extends State<Home> {
       {
         'image': 'assets/image.jpg',
         'title': 'Judul Informasi Diklat',
-        'date': '29 March 2024 14:31 IST',
+        'date': '29 March 2024',
       },
       {
         'image': 'assets/image.jpg',
         'title': 'Judul Informasi Lainnya',
-        'date': '29 March 2024 14:31 IST',
+        'date': '29 March 2024',
       },
       {
         'image': 'assets/image.jpg',
         'title': 'Judul Informasi Lainnya',
-        'date': '29 March 2024 14:31 IST',
+        'date': '29 March 2024',
       },
       {
         'image': 'assets/image.jpg',
         'title': 'Judul Informasi Lainnya',
-        'date': '29 March 2024 14:31 IST',
+        'date': '29 March 2024',
       },
       {
         'image': 'assets/image.jpg',
         'title': 'Judul Informasi Lainnya',
-        'date': '29 March 2024 14:31 IST',
+        'date': '29 March 2024',
       },
     ];
 
@@ -494,13 +490,13 @@ class _HomeState extends State<Home> {
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        // color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -508,7 +504,7 @@ class _HomeState extends State<Home> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
             child: Image.asset(
               update['image']!,
               height: 150,
@@ -516,19 +512,24 @@ class _HomeState extends State<Home> {
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
-                  height: 120,
-                  color: Colors.grey[200],
-                  child: Icon(
-                    Icons.image_not_supported,
-                    color: Colors.grey[400],
-                    size: 32,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.image_not_supported_rounded,
+                      color: Colors.grey[400],
+                      size: 36,
+                    ),
                   ),
                 );
               },
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(1),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -538,17 +539,29 @@ class _HomeState extends State<Home> {
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
+                    height: 1.2,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  update['date']!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.access_time_rounded,
+                      size: 14,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      update['date']!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

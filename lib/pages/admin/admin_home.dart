@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 import 'admin_application.dart';
 import 'admin_notification.dart';
@@ -23,13 +24,19 @@ class _AdminHomeState extends State<AdminHome> {
   String adminName = '';
   int totalUsers = 0;
   int verifiedUsers = 0;
+  int totalApplications = 0;
+  int approvedApplications = 0;
+  int pendingApplications = 0;
+  int rejectedApplications = 0;
   bool isLoading = true;
+  Map<String, int> categoryDistribution = {};
 
   @override
   void initState() {
     super.initState();
     _loadAdminData();
     _fetchUserData();
+    _fetchApplicationData();
   }
 
   Future<void> _loadAdminData() async {
@@ -43,18 +50,17 @@ class _AdminHomeState extends State<AdminHome> {
     }
   }
 
-  // Add this new method to fetch user data
   Future<void> _fetchUserData() async {
     try {
       final response = await http.get(Uri.parse('$apiBaseUrl/api/getnewsignup'));
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final List<dynamic> users = data['users']; // Extract users array from response
+        final List<dynamic> users = data['users'];
         
         int verified = 0;
         for (var user in users) {
-          if (user['verified'] == true) { // Check "verified" field, not "isVerified"
+          if (user['verified'] == true) {
             verified++;
           }
         }
@@ -78,11 +84,49 @@ class _AdminHomeState extends State<AdminHome> {
     }
   }
 
+  Future<void> _fetchApplicationData() async {
+    try {
+      final response = await http.get(Uri.parse('$apiBaseUrl/api/applications'));
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        final List<dynamic> data = responseData['data'] ?? [];
+        
+        // Reset distributions
+        categoryDistribution.clear();
+        int approved = 0, pending = 0, rejected = 0;
+        
+        for (var app in data) {
+          // Status counting
+          switch (app['status']?.toLowerCase()) {
+            case 'approved': approved++; break;
+            case 'pending': pending++; break;
+            case 'rejected': rejected++; break;
+          }
+          
+          // Category counting
+          final category = app['category'] as String? ?? 'Unknown';
+          categoryDistribution[category] = (categoryDistribution[category] ?? 0) + 1;
+        }
+        
+        setState(() {
+          totalApplications = data.length;
+          approvedApplications = approved;
+          pendingApplications = pending;
+          rejectedApplications = rejected;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching application data: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(450),
+        preferredSize: const Size.fromHeight(380), 
         child: Stack(
           clipBehavior: Clip.none,
           children: [      
@@ -130,8 +174,7 @@ class _AdminHomeState extends State<AdminHome> {
                               size: 24,
                             ),
                             onPressed: () {
-                              // Navigate to settings
-                               Navigator.push(
+                              Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => const AdminProfilePage(),
@@ -185,7 +228,7 @@ class _AdminHomeState extends State<AdminHome> {
               ),
             ),
             Positioned(
-              top: 300,
+              top: 250, // Reduced from 300
               left: 0,
               right: 0,
               child: Column(
@@ -202,7 +245,6 @@ class _AdminHomeState extends State<AdminHome> {
           children: [
             _buildStatCards(),
             const SizedBox(height: 20),
-            // _buildRecentActivity(),
           ],
         ),
       ),
@@ -211,8 +253,9 @@ class _AdminHomeState extends State<AdminHome> {
 
   Widget _buildAdminDashboard() {
     return SizedBox(
-      height: 350,
+      height: 160, // Fixed height instead of 350
       child: Column(
+        mainAxisSize: MainAxisSize.min, // Added this
         children: [
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 18),
@@ -335,7 +378,7 @@ class _AdminHomeState extends State<AdminHome> {
 
   Widget _buildStatCards() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16), // Removed top padding
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -374,23 +417,48 @@ class _AdminHomeState extends State<AdminHome> {
             children: [
               Expanded(
                 child: _buildStatCard(
-                  title: 'Pending Approval',
-                  value: '12',
-                  icon: Icons.pending_actions,
-                  color: Colors.red,
+                  title: 'Total Applications',
+                  value: totalApplications.toString(),
+                  icon: Icons.description,
+                  color: Colors.purple,
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _buildStatCard(
-                  title: 'Completed',
-                  value: '86',
+                  title: 'Approved',
+                  value: approvedApplications.toString(),
                   icon: Icons.check_circle,
                   color: Colors.green,
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Pending',
+                  value: pendingApplications.toString(),
+                  icon: Icons.pending_actions,
+                  color: Colors.orange,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Rejected',
+                  value: rejectedApplications.toString(),
+                  icon: Icons.cancel,
+                  color: Colors.red,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // if (!isLoading && totalApplications > 0)
+          //   _buildCategoryChart(),
         ],
       ),
     );
@@ -445,6 +513,109 @@ class _AdminHomeState extends State<AdminHome> {
               fontWeight: FontWeight.bold,
               color: Colors.grey[800],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryChart() {
+    if (categoryDistribution.isEmpty) {
+      return const Center(child: Text('No category data available'));
+    }
+    
+    final List<PieChartSectionData> sections = [];
+    final List<Color> colors = [
+      Colors.blue,
+      Colors.green,
+      Colors.red,
+      Colors.purple,
+      Colors.amber,
+      Colors.teal,
+      Colors.indigo,
+      Colors.pink,
+    ];
+    
+    int colorIndex = 0;
+    categoryDistribution.forEach((category, count) {
+      final double percentage = count / totalApplications;
+      sections.add(
+        PieChartSectionData(
+          color: colors[colorIndex % colors.length],
+          value: percentage * 100,
+          title: '${(percentage * 100).toStringAsFixed(1)}%',
+          radius: 80,
+          titleStyle: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+      );
+      colorIndex++;
+    });
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Category Distribution',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+            ),
+          ),
+          const SizedBox(height: 16),
+          AspectRatio(
+            aspectRatio: 1.5,
+            child: PieChart(
+              PieChartData(
+                sections: sections,
+                centerSpaceRadius: 40,
+                sectionsSpace: 2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 16,
+            runSpacing: 8,
+            children: categoryDistribution.entries.map((entry) {
+              final index = categoryDistribution.keys.toList().indexOf(entry.key);
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: colors[index % colors.length],
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${entry.key} (${entry.value})',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              );
+            }).toList(),
           ),
         ],
       ),

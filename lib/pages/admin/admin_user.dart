@@ -95,7 +95,9 @@ class _AdminUserState extends State<AdminUser> {
         final List<dynamic> data = responseData['users'] as List<dynamic>;
         
         setState(() {
-          users = data.map((json) => User.fromJson(json)).toList();
+          users = data.map((json) => User.fromJson(json)).toList()
+            ..sort((a, b) => DateTime.parse(b.createdAt)
+                .compareTo(DateTime.parse(a.createdAt)));
           isLoading = false;
         });
       } else {

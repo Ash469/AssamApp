@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:url_launcher/url_launcher.dart'; // Add this import
 
 // Model class for application data
 class Application {
@@ -91,7 +92,11 @@ class _AdminApplicationState extends State<AdminApplication> {
         final List<dynamic> data = responseData['data'] as List<dynamic>;
         
         setState(() {
-          applications = data.map((json) => Application.fromJson(json)).toList();
+          // Sort applications by date in descending order (latest first)
+          applications = data
+            .map((json) => Application.fromJson(json))
+            .toList()
+            ..sort((a, b) => DateTime.parse(b.date).compareTo(DateTime.parse(a.date)));
           isLoading = false;
         });
       } else {
@@ -160,11 +165,31 @@ class _AdminApplicationState extends State<AdminApplication> {
                     Text('Documents:', style: TextStyle(fontWeight: FontWeight.bold)),
                     SizedBox(height: 4),
                     InkWell(
-                      onTap: () {
-                        // Optional: Add code to open the document URL
+                      onTap: () async {
+                        try {
+                          // Create URI and encode it properly
+                          final Uri uri = Uri.parse(application.documentUrl);
+                          if (!await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                            webOnlyWindowName: '_blank',
+                          )) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Could not open the URL')),
+                              );
+                            }
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error opening URL: $e')),
+                            );
+                          }
+                        }
                       },
                       child: Text(
-                        application.documentUrl,
+                        'View Document',
                         style: TextStyle(
                           color: Colors.blue,
                           decoration: TextDecoration.underline,
