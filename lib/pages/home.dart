@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:card_swiper/card_swiper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:endgame/services/notification_service.dart';
 
 import 'new_application.dart';
 import 'notifications.dart';
@@ -18,11 +19,22 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   String userName = '';
+  final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    
+    // Subscribe to general topic if we have permission
+    _notificationService.subscribeToTopic('general');
+    
+    // Check for permission after a short delay to allow UI to build
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted && _notificationService.permissionDenied) {
+        _notificationService.showPermissionRequestDialog(context);
+      }
+    });
   }
 
   Future<void> _loadUserData() async {
@@ -33,6 +45,11 @@ class _HomeState extends State<Home> {
       setState(() {
         userName = userData['firstName'] ?? 'User';
       });
+      
+      // If user ID exists, subscribe to user-specific notifications
+      if (userData['_id'] != null) {
+        _notificationService.subscribeToTopic('user_${userData['_id']}');
+      }
     }
   }
 

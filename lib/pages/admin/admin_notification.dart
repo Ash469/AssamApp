@@ -27,6 +27,14 @@ class _AdminNotificationState extends State<AdminNotification> {
       _error = null;
     });
 
+    // IMPORTANT: This function sends the notification data to your backend.
+    // The backend is responsible for two actions:
+    // 1. Saving the notification to the database (which seems to be working).
+    // 2. Sending a Firebase Cloud Messaging (FCM) push notification to clients
+    //    (e.g., to a topic like 'all_users' or specific device tokens).
+    // If push notifications are not appearing for admin-created entries,
+    // ensure your backend's /api/notification POST handler implements FCM sending
+    // using the Firebase Admin SDK or FCM HTTP API.
     try {
       final response = await http.post(
         Uri.parse('$apiBaseUrl/api/notification'),

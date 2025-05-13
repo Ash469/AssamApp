@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "26977788191",
+    "project_id": "assamapp-35a89",
+    "storage_bucket": "assamapp-35a89.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:26977788191:android:eb4b38291721497f2cd02a",
+        "android_client_info": {
+          "package_name": "com.ayush.endgame"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdpOlh6bvhfqGPqTS3nbwG2HmDiyVu_Ck"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
