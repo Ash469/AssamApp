@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:endgame/components/app_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:endgame/pages/auth/first_screen.dart';
+import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -14,6 +16,8 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic> _userData = {};
   bool _isLoading = true;
+  String? _errorMessage;
+  final String apiBaseUrl = dotenv.env['BACKEND_URL'] ?? 'http://10.150.54.176:3000';
 
   @override
   void initState() {
@@ -24,31 +28,119 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _loadUserData() async {
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
     });
     
     try {
       final prefs = await SharedPreferences.getInstance();
-      final userDataString = prefs.getString('userData');
+      final token = prefs.getString('token');
       
-      if (userDataString != null) {
-        setState(() {
-          _userData = json.decode(userDataString);
-          _isLoading = false;
-        });
-      } else {
-        // Handle case where user data is not available
+      if (token == null) {
+        // No token, redirect to login
         _navigateToLogin();
+        return;
+      }
+      
+      // Extract user ID from token if possible (similar to jwt_decode in JavaScript)
+      String? userId;
+      try {
+        // Basic parsing of JWT token (simplified version)
+        final parts = token.split('.');
+        if (parts.length > 1) {
+          final payload = parts[1];
+          final normalized = base64Url.normalize(payload);
+          final decodedPayload = utf8.decode(base64Url.decode(normalized));
+          final payloadMap = json.decode(decodedPayload);
+          
+          // Try different common JWT fields for user ID
+          userId = payloadMap['id'] ?? payloadMap['userId'] ?? 
+                   payloadMap['_id'] ?? payloadMap['sub'];
+        }
+      } catch (e) {
+        print('Error decoding token: $e');
+      }
+      
+      // Make the API call to get the full user profile
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/api/getnewsignup'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        
+        if (responseData['users'] != null && 
+            responseData['users'] is List && 
+            responseData['users'].isNotEmpty) {
+          
+          Map<String, dynamic>? loggedInUserData;
+          
+          // Find the logged-in user by userId if we have it
+          if (userId != null) {
+            for (var user in responseData['users']) {
+              if ((user['_id'] == userId || user['userId'] == userId) && user is Map<String, dynamic>) {
+                loggedInUserData = user;
+                break;
+              }
+            }
+          }
+          
+          // If we couldn't find the user by ID, use the first user
+          if (loggedInUserData == null) {
+            loggedInUserData = responseData['users'][0];
+            print('Logged in user not found in user list, showing first user');
+          }
+          
+          // Update the state with the user data
+          setState(() {
+            _userData = loggedInUserData!;
+            _isLoading = false;
+          });
+          
+          // Store the complete user data for future use
+          await prefs.setString('userData', json.encode(_userData));
+        } else {
+          throw Exception('No user data found');
+        }
+      } else if (response.statusCode == 401) {
+        // Token expired or invalid
+        await prefs.remove('token');
+        await prefs.remove('userData');
+        _navigateToLogin();
+      } else {
+        throw Exception('Failed to fetch user profile: ${response.statusCode}');
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
+        _errorMessage = e.toString();
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to load profile data'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      
+      // Try to load stored data as fallback
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final userDataString = prefs.getString('userData');
+        
+        if (userDataString != null) {
+          setState(() {
+            _userData = json.decode(userDataString);
+            _errorMessage = 'Using cached data. Pull down to refresh.';
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to load profile data'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (fallbackError) {
+        // If all attempts fail, navigate to login
+        _navigateToLogin();
+      }
     }
   }
 
@@ -83,7 +175,48 @@ class _ProfilePageState extends State<ProfilePage> {
       appBar: const CustomAppBar(title: 'My Profile'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _buildProfileContent(),
+          : RefreshIndicator(
+              onRefresh: _loadUserData,
+              child: _errorMessage != null && _userData.isEmpty
+                  ? _buildErrorState()
+                  : _buildProfileContent(),
+            ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Colors.red,
+              size: 60,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Error: $_errorMessage',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.red,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _loadUserData,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromRGBO(1, 103, 104, 1),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

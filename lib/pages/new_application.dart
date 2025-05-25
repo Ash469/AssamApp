@@ -7,7 +7,8 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:typed_data';
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter/services.dart'; // Add this import at the top of your file
+import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Add this import
 
 class NewApplication extends StatefulWidget {
   const NewApplication({super.key});
@@ -27,11 +28,14 @@ class _NewApplicationState extends State<NewApplication> {
   final TextEditingController _revenueCircleController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
   final TextEditingController _documentUrlController = TextEditingController();
+  // Remove the createdBy controller as we'll get it from SharedPreferences
 
   String? _selectedCategory;
   String? _selectedDistrict;
   String? _selectedVillageWard;
   String? _selectedGender;
+  // Variable to store user data
+  Map<String, dynamic> _userData = {};
 
   final List<String> _categories = ['Administration', 'Legal', 'Business', 'Disaster Relief','Finance','Education', 'Other'];
   final List<String> _genders = ['Male', 'Female', 'Other'];
@@ -99,6 +103,38 @@ class _NewApplicationState extends State<NewApplication> {
 
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData(); // Load user data when the screen initializes
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userDataString = prefs.getString('userData');
+      
+      if (userDataString != null) {
+        final userData = json.decode(userDataString);
+        setState(() {
+          _userData = userData;
+        });
+        
+        // More detailed logging to debug the user data
+        debugPrint('User data loaded from SharedPreferences:');
+        debugPrint('User ID: ${userData['userId'] ?? 'not found'}');
+        debugPrint('User _id: ${userData['_id'] ?? 'not found'}');
+        debugPrint('First Name: ${userData['firstName'] ?? 'not found'}');
+        debugPrint('Last Name: ${userData['lastName'] ?? 'not found'}');
+        debugPrint('Full data: $userData');
+      } else {
+        debugPrint('No user data found in SharedPreferences');
+      }
+    } catch (e) {
+      debugPrint('Error loading user data: $e');
+    }
+  }
+
   Future<void> _submitApplication() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -129,6 +165,34 @@ class _NewApplicationState extends State<NewApplication> {
         throw Exception("Please select a document to upload");
       }
 
+      // Get createdBy from user data with better logging
+      String createdBy = 'Anonymous User';
+      debugPrint('Preparing createdBy field from user data:');
+      
+      if (_userData.isNotEmpty) {
+        // Try different ID fields that might be present
+        if (_userData['userId'] != null && _userData['userId'].toString().isNotEmpty) {
+          createdBy = _userData['userId'].toString();
+          debugPrint('Using userId: $createdBy');
+        } else if (_userData['_id'] != null && _userData['_id'].toString().isNotEmpty) {
+          createdBy = _userData['_id'].toString();
+          debugPrint('Using _id: $createdBy');
+        } else {
+          final firstName = _userData['firstName'] ?? '';
+          final lastName = _userData['lastName'] ?? '';
+          final fullName = "$firstName $lastName".trim();
+          
+          if (fullName.isNotEmpty) {
+            createdBy = fullName;
+            debugPrint('Using full name: $createdBy');
+          } else {
+            debugPrint('No identifier found, using Anonymous User');
+          }
+        }
+      } else {
+        debugPrint('User data is empty, using Anonymous User');
+      }
+
       // Create the request payload with all required fields
       final payload = {
         "fullName": _fullNameController.text.trim(),
@@ -141,6 +205,7 @@ class _NewApplicationState extends State<NewApplication> {
         "category": _selectedCategory ?? "",
         "remarks": _remarksController.text.trim(),
         "documentUrl": documentUrl, // Now we only use the cloudinary URL
+        "createdBy": createdBy, // Use the retrieved createdBy
       };
 
       // Log the payload for debugging
@@ -277,6 +342,16 @@ class _NewApplicationState extends State<NewApplication> {
 
   @override
   Widget build(BuildContext context) {
+    // Get the current user for display
+    String currentUser = 'Not logged in';
+    if (_userData.isNotEmpty) {
+      if (_userData['userId'] != null && _userData['userId'].toString().isNotEmpty) {
+        currentUser = 'User: ${_userData['userId']}';
+      } else if (_userData['firstName'] != null || _userData['lastName'] != null) {
+        currentUser = 'User: ${_userData['firstName'] ?? ''} ${_userData['lastName'] ?? ''}'.trim();
+      }
+    }
+
     return Scaffold(
       appBar: const CustomAppBar(title: 'New Application'),
       drawer: const AppDrawer(),
@@ -288,9 +363,33 @@ class _NewApplicationState extends State<NewApplication> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Display current logged-in user info
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.person, color: Color.fromRGBO(1, 103, 104, 1)),
+                      const SizedBox(width: 8),
+                      Text(
+                        currentUser,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 _buildTextField(label: 'Full Name', controller: _fullNameController),
                 _buildTextField(label: 'Age', controller: _ageController, keyboardType: TextInputType.number),
                 _buildTextField(label: 'Contact Number', controller: _contactNumberController, keyboardType: TextInputType.phone),
+                // Removed the createdBy text field as we get it from SharedPreferences
                 _buildDropdownField(
                   label: 'Gender',
                   value: _selectedGender,

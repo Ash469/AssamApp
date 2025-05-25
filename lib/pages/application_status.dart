@@ -10,6 +10,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import 'package:endgame/utils/pdf_helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApplicationStatusPage extends StatefulWidget {
   const ApplicationStatusPage({super.key});
@@ -28,6 +29,8 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
   String errorMessage = '';
   String? statusFilter;
   String? categoryFilter;
+  String? userId;
+  bool isFirebaseInitialized = true; 
 
   Set<int> selectedApplications = {};
   bool isSelectionMode = false;
@@ -35,34 +38,193 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
   @override
   void initState() {
     super.initState();
-    fetchApplications();
+    _initPageData();
+  }
+
+
+  Future<void> _initPageData() async {
+    // Clear error state when retrying
+    if (mounted) {
+      setState(() {
+        isLoading = true;
+        errorMessage = '';
+      });
+    }
+    await _getUserIdAndFetchApplications();
+  }
+
+  Future<void> _getUserIdAndFetchApplications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userDataString = prefs.getString('userData');
+      
+      print('Checking for user data in SharedPreferences...');
+      if (userDataString != null) {
+        print('User data found in SharedPreferences!');
+        final userData = json.decode(userDataString);
+        print('Decoded user data: ${userData.toString()}');
+        
+        // Use userId or _id field depending on what's available
+        userId = userData['userId'] ?? userData['_id'];
+        print('Using userId: $userId');
+        
+        if (userId == null || userId!.isEmpty) {
+          print('User ID is null or empty after parsing userData');
+          setState(() {
+            isLoading = false;
+            errorMessage = 'User ID not found. Please login again.';
+          });
+          return;
+        }
+      } else {
+        print('No user data found in SharedPreferences, checking for token...');
+        // If no user data in SharedPreferences, try to get it from token
+        final token = prefs.getString('token');
+        if (token != null) {
+          print('Token found, attempting to fetch user profile...');
+          // Try to fetch user profile data
+          try {
+            final response = await http.get(
+              Uri.parse('$apiBaseUrl/api/getnewsignup'),
+              headers: {
+                'Authorization': 'Bearer $token',
+                'Content-Type': 'application/json',
+              },
+            ).timeout(const Duration(seconds: 10));
+            
+            print('API response status code: ${response.statusCode}');
+            
+            if (response.statusCode == 200) {
+              final responseData = json.decode(response.body);
+              if (responseData['users'] != null && responseData['users'] is List && responseData['users'].isNotEmpty) {
+                // Get first user (assuming this is the logged in user)
+                final userData = responseData['users'][0];
+                print('Retrieved user data from API: ${userData.toString()}');
+                await prefs.setString('userData', json.encode(userData));
+                userId = userData['userId'] ?? userData['_id'];
+                print('Set userId: $userId');
+              } else {
+                throw Exception('No user data found in profile API response');
+              }
+            } else {
+              throw Exception('Failed to fetch user profile: ${response.statusCode}');
+            }
+          } catch (e) {
+            print('Error fetching user profile: $e');
+            // Try the token decode approach to get userId
+            try {
+              final parts = token.split('.');
+              if (parts.length > 1) {
+                final payload = base64Url.normalize(parts[1]);
+                final decoded = utf8.decode(base64Url.decode(payload));
+                final payloadMap = json.decode(decoded);
+                userId = payloadMap['id'] ?? payloadMap['userId'] ?? payloadMap['sub'] ?? payloadMap['_id'];
+                print('Extracted userId from token: $userId');
+                
+                if (userId != null && userId!.isNotEmpty) {
+                  // We have a userId, let's continue with that
+                  final basicUserData = {'userId': userId};
+                  await prefs.setString('userData', json.encode(basicUserData));
+                } else {
+                  throw Exception('Could not extract user ID from token');
+                }
+              } else {
+                throw Exception('Invalid token format');
+              }
+            } catch (tokenError) {
+              print('Error decoding token: $tokenError');
+              setState(() {
+                isLoading = false;
+                errorMessage = 'Unable to authenticate. Please login again.';
+              });
+              return;
+            }
+          }
+        } else {
+          print('No token found in SharedPreferences');
+          setState(() {
+            isLoading = false;
+            errorMessage = 'You are not logged in. Please login to continue.';
+          });
+          return;
+        }
+      }
+      
+      // Now fetch applications with the userId
+      await fetchApplications();
+    } catch (e) {
+      print('Error in _getUserIdAndFetchApplications: $e');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          errorMessage = 'Error loading user data: ${e.toString()}';
+        });
+      }
+    }
   }
 
   Future<void> fetchApplications() async {
     try {
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/api/applications'),
+      if (userId == null || userId!.isEmpty) {
+        setState(() {
+          isLoading = false;
+          errorMessage = 'Unable to fetch applications: User ID not found';
+        });
+        return;
+      }
+
+      // Updated URL for the new endpoint
+      final url = '$apiBaseUrl/api/getapplicationByUserId';
+      print('Fetching applications with URL: $url');
+      
+      // Changed to POST request with createdBy in the body
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'createdBy': userId}),
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          return http.Response('{"error":"Request timed out"}', 408);
+        },
       );
 
+      if (!mounted) return;
+
+      print('Response status code: ${response.statusCode}');
+      
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         final List<dynamic> data = responseData['data'] ?? [];
-        setState(() {
-          applications = List<Map<String, dynamic>>.from(data);
-          filteredApplications = applications;
-          isLoading = false;
-        });
+        
+        if (mounted) {
+          setState(() {
+            applications = List<Map<String, dynamic>>.from(data);
+            filteredApplications = applications;
+            isLoading = false;
+          });
+        }
+        
+        print('Loaded ${applications.length} applications');
       } else {
-        setState(() {
-          isLoading = false;
-          errorMessage = 'Failed to load applications';
-        });
+        final Map<String, dynamic> errorData = jsonDecode(response.body);
+        final String errorMsg = errorData['error'] ?? 'Unknown error occurred';
+        
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+            errorMessage = 'Failed to load applications: $errorMsg';
+          });
+        }
       }
     } catch (e) {
-      setState(() {
-        isLoading = false;
-        errorMessage = 'Error: ${e.toString()}';
-      });
+      print('Error fetching applications: $e');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          errorMessage = 'Error: ${e.toString()}';
+        });
+      }
     }
   }
 
@@ -447,75 +609,114 @@ class _ApplicationStatusPageState extends State<ApplicationStatusPage> {
                     ? const Center(child: CircularProgressIndicator())
                     : errorMessage.isNotEmpty
                         ? Center(
-                            child: Text(errorMessage,
-                                style: const TextStyle(color: Colors.red)))
-                        : ListView.separated(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 4), // Reduced overall padding
-                            itemCount: filteredApplications.length,
-                            separatorBuilder: (context, index) =>
-                                const Divider(height: 16),
-                            itemBuilder: (context, index) {
-                              final application =
-                                  filteredApplications.reversed.toList()[index];
-                              final fullName =
-                                  application['fullName'] ?? 'No Name';
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  errorMessage,
+                                  style: const TextStyle(color: Colors.red),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 20),
+                                ElevatedButton(
+                                  onPressed: _initPageData,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.teal,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                            ),
+                          )
+                        : filteredApplications.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'No applications found',
+                                      style: TextStyle(fontSize: 16),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    ElevatedButton(
+                                      onPressed: _initPageData,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.teal,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      child: const Text('Refresh'),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : ListView.separated(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 4), // Reduced overall padding
+                                itemCount: filteredApplications.length,
+                                separatorBuilder: (context, index) =>
+                                    const Divider(height: 16),
+                                itemBuilder: (context, index) {
+                                  final application =
+                                      filteredApplications.reversed.toList()[index];
+                                  final fullName =
+                                      application['fullName'] ?? 'No Name';
 
-                              return ListTile(
-                                dense: false,
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 6), // Minimal padding
-                                onTap: () {
-                                  if (isSelectionMode) {
-                                    toggleSelection(index);
-                                  } else {
-                                    _showApplicationDetails(context, application);
-                                  }
-                                },
-                                onLongPress: () {
-                                  toggleSelection(index);
-                                },
-                                leading: isSelectionMode
-                                  ? Checkbox(
-                                      value: selectedApplications.contains(index),
-                                      onChanged: (_) => toggleSelection(index),
-                                      activeColor: Colors.teal,
-                                    )
-                                  : CircleAvatar(
-                                      backgroundColor: Colors.teal[100],
-                                      radius: 20, // Smaller radius
-                                      child: Text('${index + 1}'),
+                                  return ListTile(
+                                    dense: false,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 6), // Minimal padding
+                                    onTap: () {
+                                      if (isSelectionMode) {
+                                        toggleSelection(index);
+                                      } else {
+                                        _showApplicationDetails(context, application);
+                                      }
+                                    },
+                                    onLongPress: () {
+                                      toggleSelection(index);
+                                    },
+                                    leading: isSelectionMode
+                                      ? Checkbox(
+                                          value: selectedApplications.contains(index),
+                                          onChanged: (_) => toggleSelection(index),
+                                          activeColor: Colors.teal,
+                                        )
+                                      : CircleAvatar(
+                                          backgroundColor: Colors.teal[100],
+                                          radius: 20, // Smaller radius
+                                          child: Text('${index + 1}'),
+                                        ),
+                                    title: Text(
+                                      fullName,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 18),
+                                      overflow: TextOverflow
+                                          .ellipsis, // Add ellipsis for long text
                                     ),
-                                title: Text(
-                                  fullName,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 18),
-                                  overflow: TextOverflow
-                                      .ellipsis, // Add ellipsis for long text
-                                ),
-                                subtitle: Text(
-                                  application['category'] ?? 'No Category',
-                                  style: TextStyle(
-                                      color: Colors.grey[700], fontSize: 14),
-                                ),
-                                trailing: Padding(
-                                  padding: const EdgeInsets.only(right: 8.0),
-                                  child: SizedBox(
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                    Flexible(
-                                      child: _buildStatusChip(
-                                        application['status']),
+                                    subtitle: Text(
+                                      application['category'] ?? 'No Category',
+                                      style: TextStyle(
+                                          color: Colors.grey[700], fontSize: 14),
                                     ),
-                                    ],
-                                  ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+                                    trailing: Padding(
+                                      padding: const EdgeInsets.only(right: 8.0),
+                                      child: SizedBox(
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                        Flexible(
+                                          child: _buildStatusChip(
+                                            application['status']),
+                                        ),
+                                        ],
+                                      ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
               ),
             ),
           ],

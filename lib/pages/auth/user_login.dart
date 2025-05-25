@@ -62,14 +62,20 @@ class _UserLoginPageState extends State<UserLoginPage> {
           await prefs.remove('adminToken');
           await prefs.setString('token', responseData['token']);
           
-          // Store specific user details
+          // Store complete user data from the login response
           final userData = {
             'firstName': responseData['user']['firstName'],
             'lastName': responseData['user']['lastName'],
             'contactNumber': responseData['user']['contactNumber'],
             'userId': responseData['user']['userId'],
+            // Add additional fields from the user object
+            'email': responseData['user']['email'] ?? '',
+            'profileImage': responseData['user']['profileImage'] ?? '',
+            'createdAt': responseData['user']['createdAt'] ?? '',
           };
-          await prefs.setString('userData', json.encode(userData));
+          
+          // Fetch complete user profile using token for additional details
+          await _fetchAndStoreCompleteUserProfile(responseData['token'], userData);
 
           if (!mounted) return;
 
@@ -99,8 +105,8 @@ class _UserLoginPageState extends State<UserLoginPage> {
         }
       } catch (error) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Connection error: Please check your internet connection'),
+          SnackBar(
+            content: Text('Connection error: ${error.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -109,6 +115,136 @@ class _UserLoginPageState extends State<UserLoginPage> {
           setState(() => _isLoading = false);
         }
       }
+    }
+  }
+  
+  Future<void> _fetchAndStoreCompleteUserProfile(String token, Map<String, dynamic> initialUserData) async {
+    try {
+      // First, try to extract user ID from JWT token as a backup
+      String? extractedUserId = initialUserData['userId'];
+      try {
+        if (extractedUserId == null || extractedUserId.isEmpty) {
+          final parts = token.split('.');
+          if (parts.length > 1) {
+            final payload = base64Url.normalize(parts[1]);
+            final decoded = utf8.decode(base64Url.decode(payload));
+            final payloadMap = json.decode(decoded);
+            extractedUserId = payloadMap['id'] ?? payloadMap['userId'] ?? payloadMap['sub'] ?? payloadMap['_id'];
+            print('Extracted userId from token: $extractedUserId');
+          }
+        }
+      } catch (e) {
+        print('Error extracting ID from token: $e');
+      }
+
+      // Fetch complete user profile data
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/api/getnewsignup'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          return http.Response('{"error":"Request timed out"}', 408);
+        },
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        print('API response: ${responseData.toString()}');
+        
+        if (responseData['users'] != null && responseData['users'] is List && responseData['users'].isNotEmpty) {
+          // Find the logged-in user in the list of users - first by contactNumber match
+          Map<String, dynamic>? fullUserData;
+          String contactNumber = initialUserData['contactNumber'] ?? '';
+          
+          // Try to find user by contactNumber first (most reliable match)
+          if (contactNumber.isNotEmpty) {
+            for (var user in responseData['users']) {
+              if (user['contactNumber'] == contactNumber) {
+                fullUserData = Map<String, dynamic>.from(user);
+                print('Found user by contact number: ${user['contactNumber']}');
+                break;
+              }
+            }
+          }
+          
+          // If not found by contactNumber and we have userId, try that
+          if (fullUserData == null && extractedUserId != null && extractedUserId.isNotEmpty) {
+            for (var user in responseData['users']) {
+              if ((user['userId'] == extractedUserId) || 
+                  (user['_id'] == extractedUserId)) {
+                fullUserData = Map<String, dynamic>.from(user);
+                print('Found user by ID: ${extractedUserId}');
+                break;
+              }
+            }
+          }
+          
+          // If still not found, try email match
+          if (fullUserData == null && initialUserData['email'] != null && initialUserData['email'].isNotEmpty) {
+            for (var user in responseData['users']) {
+              if (user['email'] == initialUserData['email']) {
+                fullUserData = Map<String, dynamic>.from(user);
+                print('Found user by email: ${initialUserData['email']}');
+                break;
+              }
+            }
+          }
+          
+          // If still no match, use first user as last resort
+          if (fullUserData == null) {
+            fullUserData = Map<String, dynamic>.from(responseData['users'][0]);
+            print('No exact match found, using first user from list');
+          }
+          
+          // Make sure we have a userId - use either from data or extracted
+          if (fullUserData['userId'] == null || fullUserData['userId'].toString().isEmpty) {
+            // If the API response has _id instead of userId, use that
+            if (fullUserData['_id'] != null && fullUserData['_id'].toString().isNotEmpty) {
+              fullUserData['userId'] = fullUserData['_id'];
+              print('Using _id as userId: ${fullUserData['userId']}');
+            } else if (extractedUserId != null && extractedUserId.isNotEmpty) {
+              // Otherwise, try to use extracted ID from token
+              fullUserData['userId'] = extractedUserId;
+              print('Using token-extracted ID as userId: ${fullUserData['userId']}');
+            }
+          }
+          
+          // Store the enhanced user profile
+          print('Saving user data: ${fullUserData.toString()}');
+          await prefs.setString('userData', json.encode(fullUserData));
+          print('Complete user data stored successfully');
+          
+          if (fullUserData['userId'] == null || fullUserData['userId'].toString().isEmpty) {
+            print('WARNING: Still no userId after all attempts! User data: ${fullUserData.toString()}');
+          }
+        } else {
+          // Fall back to initial user data with extracted ID if available
+          if (extractedUserId != null && extractedUserId.isNotEmpty) {
+            initialUserData['userId'] = extractedUserId;
+          }
+          await prefs.setString('userData', json.encode(initialUserData));
+          print('No users found in API, using initial data with any available ID');
+        }
+      } else {
+        print('Profile API request failed with status: ${response.statusCode}');
+        // Add extracted user ID to initial data if available
+        if (extractedUserId != null && extractedUserId.isNotEmpty) {
+          initialUserData['userId'] = extractedUserId;
+        }
+        await prefs.setString('userData', json.encode(initialUserData));
+        print('Using initial data with any available ID');
+      }
+    } catch (e) {
+      print('Error fetching complete user profile: $e');
+      // Store initial data on error
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userData', json.encode(initialUserData));
     }
   }
 

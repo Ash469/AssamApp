@@ -3,6 +3,7 @@ import 'package:endgame/components/app_bar.dart';
 import 'signup_success_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class UserSignupPage extends StatefulWidget {
@@ -14,7 +15,11 @@ class UserSignupPage extends StatefulWidget {
 
 class _UserSignupPageState extends State<UserSignupPage> {
   // Add this constant at the top of the class
-  final  String apiUrl = dotenv.env['BACKEND_URL'] ?? 'http://10.150.54.176:3000';
+  final String apiUrl = () {
+    final url = dotenv.env['BACKEND_URL'];
+    print('BACKEND_URL from env: $url');
+    return url ?? 'http://10.150.54.176:3000';
+  }();
 
   // Current step index
   int _currentStep = 0;
@@ -154,27 +159,41 @@ class _UserSignupPageState extends State<UserSignupPage> {
   // Add this method inside the class
   Future<Map<String, dynamic>> _registerUser(Map<String, dynamic> userData) async {
     try {
-      print('Attempting to connect to: $apiUrl/api/signup'); // Add this debug line
+      final endpoint = '$apiUrl/api/signup';
+      print('Attempting to connect to: $endpoint');
+      
+      final payload = jsonEncode({
+        'firstName': userData['firstName'],
+        'middleName': userData['middleName'],
+        'lastName': userData['lastName'],
+        'email': userData['email'],
+        'userId': userData['userId'],
+        'contactNumber': userData['contactNumber'],
+        'age': int.parse(userData['age']),
+        'gender': userData['gender'],
+        'password': userData['password'],
+      });
+      
+      print('Sending payload: $payload');
       
       final response = await http.post(
-        Uri.parse('$apiUrl/api/signup'),
+        Uri.parse(endpoint),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'firstName': userData['firstName'],
-          'middleName': userData['middleName'],
-          'lastName': userData['lastName'],
-          'email': userData['email'],
-          'userId': userData['userId'],
-          'contactNumber': userData['contactNumber'],
-          'age': int.parse(userData['age']),
-          'gender': userData['gender'],
-          'password': userData['password'],
-        }),
-      );
+        body: payload,
+      ).timeout(const Duration(seconds: 10), onTimeout: () {
+        throw TimeoutException('Connection timeout. Server may be down.');
+      });
 
-      print('Response status code: ${response.statusCode}'); // Add this debug line
-      print('Response body: ${response.body}'); // Add this debug line
+      print('Response status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
+      if (response.statusCode == 500) {
+        return {
+          'success': false,
+          'message': 'Server error (500). Please contact support.'
+        };
+      }
+      
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 201) {
